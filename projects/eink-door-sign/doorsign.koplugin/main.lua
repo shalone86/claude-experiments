@@ -1,11 +1,12 @@
 --[[
 Door sign plugin for KOReader (portrait only).
 
-Statuses: BUSY (red), RECORDING (black + red dot), FREE (green), or any custom text (navy).
+Statuses: BUSY (red), RECORDING (black + red dot), FREE (green), OUT OF OFFICE (purple),
+or any custom text (navy).
 Text is white, bold sans, all caps, and sized as large as fits the screen.
 
   * Change it from your phone by publishing to the ntfy topic in config.lua.
-  * Tap the sign  -> menu: Busy / Recording / Free / Custom...
+  * Tap the sign  -> menu: Busy / Recording / Free / Out of office / Custom...
   * Hold the sign -> exit the sign.
 ]]
 
@@ -30,7 +31,7 @@ local logger = require("logger")
 local _ = require("gettext")
 local Screen = Device.screen
 
-local MAIN = { "BUSY", "RECORDING", "FREE" }
+local MAIN = { "BUSY", "RECORDING", "FREE", "OUT OF OFFICE" }
 local BOLD_FACE = "tfont" -- KOReader's bold sans (Noto Sans Bold)
 
 local function load_config()
@@ -47,6 +48,7 @@ local function load_config()
     cfg.colors.BUSY = cfg.colors.BUSY or { 200, 30, 30 }
     cfg.colors.RECORDING = cfg.colors.RECORDING or { 17, 17, 17 }
     cfg.colors.FREE = cfg.colors.FREE or { 30, 140, 60 }
+    cfg.colors["OUT OF OFFICE"] = cfg.colors["OUT OF OFFICE"] or { 100, 50, 140 }
     cfg.colors.CUSTOM = cfg.colors.CUSTOM or { 40, 64, 110 }
     cfg.dot_color = cfg.dot_color or { 224, 36, 36 }
     cfg.aliases = cfg.aliases or {}
@@ -105,7 +107,7 @@ end
 ---------------------------------------------------------------------------
 local SignWidget = InputContainer:extend{
     status = "FREE",  -- already normalized (upper case)
-    kind = "FREE",    -- BUSY / RECORDING / FREE / CUSTOM
+    kind = "FREE",    -- BUSY / RECORDING / FREE / OUT OF OFFICE / CUSTOM
     cfg = nil,
     on_tap = nil,
     on_hold = nil,
@@ -271,6 +273,7 @@ function DoorSign:showPicker()
             { { text = _("Busy"), callback = pick("BUSY") } },
             { { text = _("Recording"), callback = pick("RECORDING") } },
             { { text = _("Free"), callback = pick("FREE") } },
+            { { text = _("Out of office"), callback = pick("OUT OF OFFICE") } },
             { { text = _("Custom…"), callback = function()
                 UIManager:close(dialog)
                 self:showCustomInput()

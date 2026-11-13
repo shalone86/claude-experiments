@@ -18,10 +18,15 @@ return {
         BUSY      = { 200, 30, 30 },   -- red
         RECORDING = { 17, 17, 17 },    -- near-black, with a red dot above the text
         FREE      = { 30, 140, 60 },   -- green
+        ["OUT OF OFFICE"] = { 100, 50, 140 }, -- purple
         CUSTOM    = { 40, 64, 110 },   -- navy, used for any other text
     },
     dot_color = { 224, 36, 36 },
 
     -- Other words that mean the same as a main status (case doesn't matter).
-    aliases = { OPEN = "FREE", AVAILABLE = "FREE", REC = "RECORDING", ["ON AIR"] = "RECORDING" },
+    aliases = {
+        OPEN = "FREE", AVAILABLE = "FREE",
+        REC = "RECORDING", ["ON AIR"] = "RECORDING",
+        OOO = "OUT OF OFFICE", OUT = "OUT OF OFFICE", AWAY = "OUT OF OFFICE",
+    },
 }

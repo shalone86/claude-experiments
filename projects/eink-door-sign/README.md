@@ -9,6 +9,7 @@ Turn a PocketBook e-reader into a portrait door sign you change from your phone 
 | **BUSY** | Red | White, bold sans, all caps |
 | **RECORDING** | Near-black, with a red dot above the text | same |
 | **FREE** | Green | same |
+| **OUT OF OFFICE** | Purple | same, wraps onto two lines |
 | **Custom** (any other text) | Navy | same, wraps onto several lines |
 
 The sign always shows in portrait so the device's chin sits at the bottom. Text is sized as
@@ -27,9 +28,9 @@ than a phone does (see the bottom row of the mockup).
   PocketBook as an extra app, with no jailbreak and without replacing the stock software.
   The `doorsign.koplugin` plugin in this folder shows the full-screen sign.
 - **[ntfy.sh](https://ntfy.sh)**: free message service that needs no account. Your phone
-  sends "BUSY", "RECORDING" or "FREE" to a private topic name, and the e-reader checks that topic.
+  sends "BUSY", "RECORDING", "FREE" or "OOO" to a private topic name, and the e-reader checks that topic.
 - Any other text you send becomes a custom sign, e.g. `Back at 3:30`.
-- On the sign itself: **tap** for a menu (Busy / Recording / Free / Custom…),
+- On the sign itself: **tap** for a menu (Busy / Recording / Free / Out of office / Custom…),
   **press and hold** to close the sign.
 
 ## Setup
@@ -61,6 +62,7 @@ Save these as bookmarks or home-screen shortcuts. Replace `YOURTOPIC` with your 
 - Busy: `https://ntfy.sh/YOURTOPIC/publish?message=BUSY`
 - Recording: `https://ntfy.sh/YOURTOPIC/publish?message=RECORDING`
 - Free: `https://ntfy.sh/YOURTOPIC/publish?message=FREE`
+- Out of office: `https://ntfy.sh/YOURTOPIC/publish?message=OOO`
 - Custom: `https://ntfy.sh/YOURTOPIC/publish?message=Back%20at%203:30` (spaces become `%20`)
 
 Opening a link changes the sign within about a minute (set by `poll_seconds`).
@@ -79,6 +81,12 @@ cable work well. A longer `poll_seconds` (for example 300) uses less battery but
 - For full privacy, run your own ntfy server and change `server` in `config.lua`.
 - PocketBook's own *Settings → Software → Download new updates automatically* is fine to
   leave on. KOReader is a separate app, so firmware updates don't remove it.
+
+## Adding or changing options later
+- **No device trip needed:** any text sent from the phone shows up as a custom sign (navy).
+- **Needs the USB cable once:** adding a new named option with its own color or menu button,
+  or changing colors. Edit `config.lua` / `main.lua`, then copy `doorsign.koplugin` onto the
+  e-reader again.
 
 ## Ideas for later
 - Calendar mode: show BUSY automatically during Google Calendar events.
