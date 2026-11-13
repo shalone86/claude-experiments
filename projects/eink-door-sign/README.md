@@ -2,20 +2,20 @@
 
 Turn a PocketBook e-reader into a portrait door sign you change from your phone over Wi-Fi.
 
-![Design mockups](design/mockup.png)
-
-| Status | Background | Text |
+| Sign | Background | Shows |
 |---|---|---|
-| **BUSY** | Red | White, bold sans, all caps |
-| **RECORDING** | Near-black, with a red dot above the text | same |
-| **FREE** | Green | same |
-| **Custom** (any other text) | Navy | same, wraps onto several lines |
+| **NO** | Black | Large white X, with "NO" below it |
+| **GO** | White | Large black check mark, with "GO" below it |
 
-The sign always shows in portrait so the device's chin sits at the bottom. Text is sized as
-large as will fit. Colors can be changed in `config.lua`. Color e-ink shows them more muted
-than a phone does (see the bottom row of the mockup).
+Those are the only two signs. Pure black and white is the sharpest this color e-ink screen can
+show. An earlier color version (red / green / navy, mockups in `design/`) looked washed out on
+the device, so it was replaced. The X and the check are drawn as thick lines, not font
+characters, so they don't depend on the fonts installed on the device.
 
-**Status:** written, but not yet tested on the device.
+The sign always shows in portrait so the device's chin sits at the bottom.
+
+**Status:** KOReader and the plugin install fine on the device. The NO / GO version hasn't been
+run on the device yet.
 
 ## How it works
 
@@ -27,19 +27,21 @@ than a phone does (see the bottom row of the mockup).
   PocketBook as an extra app, with no jailbreak and without replacing the stock software.
   The `doorsign.koplugin` plugin in this folder shows the full-screen sign.
 - **[ntfy.sh](https://ntfy.sh)**: free message service that needs no account. Your phone
-  sends "BUSY", "RECORDING" or "FREE" to a private topic name, and the e-reader checks that topic.
-- Any other text you send becomes a custom sign, e.g. `Back at 3:30`.
-- On the sign itself: **tap** for a menu (Busy / Recording / Free / Custom…),
-  **press and hold** to close the sign.
+  sends `no` or `go` to a private topic name, and the e-reader checks that topic.
+- Capital letters and punctuation in a message don't matter (`No`, `GO`, `go!` all work).
+  The sign ignores any other message and keeps showing what it already shows.
+- On the sign itself: **tap** for a menu (No / Go), **press and hold** to close the sign.
 
 ## Setup
 
 ### 1. Install KOReader on the PocketBook
 1. Download the latest `koreader-pocketbook-*.zip` from
    https://github.com/koreader/koreader/releases
-2. Connect the e-reader to a computer by USB. Copy the `applications` and `system`
-   folders from the zip onto the e-reader's main storage. Merge them with the folders
-   that are already there.
+2. Connect the e-reader to a computer by USB and choose **Connect to PC** on the e-reader.
+   (On a Mac it appears under *Locations* in Finder's sidebar, e.g. as `PB633`. If it
+   doesn't appear, try a different cable: many USB cables only charge.)
+   Copy the `applications` and `system` folders from the zip onto the e-reader's main storage.
+   Merge them with the folders that are already there.
 3. Eject the e-reader. KOReader now appears in the e-reader's app list.
 
 ### 2. Add the plugin
@@ -58,14 +60,11 @@ than a phone does (see the bottom row of the mockup).
 ### 4. Set up the phone remote
 Save these as bookmarks or home-screen shortcuts. Replace `YOURTOPIC` with your topic:
 
-- Busy: `https://ntfy.sh/YOURTOPIC/publish?message=BUSY`
-- Recording: `https://ntfy.sh/YOURTOPIC/publish?message=RECORDING`
-- Free: `https://ntfy.sh/YOURTOPIC/publish?message=FREE`
-- Custom: `https://ntfy.sh/YOURTOPIC/publish?message=Back%20at%203:30` (spaces become `%20`)
+- No: `https://ntfy.sh/YOURTOPIC/publish?message=NO`
+- Go: `https://ntfy.sh/YOURTOPIC/publish?message=GO`
 
-Opening a link changes the sign within about a minute (set by `poll_seconds`).
-To send custom text, use the free ntfy app or an iOS Shortcut / Android Tasker action
-that sends the text to `https://ntfy.sh/YOURTOPIC`.
+Or send `no` / `go` to the topic from the free ntfy app. The sign changes within about a
+minute (set by `poll_seconds`).
 
 ## Power
 
@@ -76,11 +75,11 @@ cable work well. A longer `poll_seconds` (for example 300) uses less battery but
 ## Notes and limits
 - ntfy.sh keeps a message for about 12 hours. After that the sign keeps showing the last
   status it received. That status is also saved on the device, so it comes back after a restart.
+  Before anything has been received, it shows `default_status` (GO).
 - For full privacy, run your own ntfy server and change `server` in `config.lua`.
 - PocketBook's own *Settings → Software → Download new updates automatically* is fine to
   leave on. KOReader is a separate app, so firmware updates don't remove it.
 
 ## Ideas for later
-- Calendar mode: show BUSY automatically during Google Calendar events.
-- Show "back at 3:30" with a countdown.
+- Calendar mode: show NO automatically during Google Calendar events.
 - A sleep-friendly version: wake every few minutes, check, then go back to sleep.

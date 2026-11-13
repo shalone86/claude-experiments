@@ -1,11 +1,13 @@
 --[[
-Door sign plugin for KOReader (portrait only).
+Door sign plugin for KOReader (portrait only, black and white).
 
-Statuses: BUSY (red), RECORDING (black + red dot), FREE (green), or any custom text (navy).
-Text is white, bold sans, all caps, and sized as large as fits the screen.
+Two signs only:
+  NO -> black background, large white X, "NO" underneath
+  GO -> white background, large black check mark, "GO" underneath
 
-  * Change it from your phone by publishing to the ntfy topic in config.lua.
-  * Tap the sign  -> menu: Busy / Recording / Free / Custom...
+  * Change it from your phone by sending "no" or "go" to the ntfy topic in config.lua.
+    Case doesn't matter. Any other message is ignored.
+  * Tap the sign  -> menu: No / Go.
   * Hold the sign -> exit the sign.
 ]]
 
@@ -18,47 +20,43 @@ local FrameContainer = require("ui/widget/container/framecontainer")
 local Geom = require("ui/geometry")
 local GestureRange = require("ui/gesturerange")
 local InputContainer = require("ui/widget/container/inputcontainer")
-local InputDialog = require("ui/widget/inputdialog")
 local NetworkMgr = require("ui/network/manager")
-local TextBoxWidget = require("ui/widget/textboxwidget")
 local TextWidget = require("ui/widget/textwidget")
 local UIManager = require("ui/uimanager")
 local VerticalGroup = require("ui/widget/verticalgroup")
 local VerticalSpan = require("ui/widget/verticalspan")
+local Widget = require("ui/widget/widget")
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
 local logger = require("logger")
 local _ = require("gettext")
 local Screen = Device.screen
 
-local MAIN = { "BUSY", "RECORDING", "FREE" }
 local BOLD_FACE = "tfont" -- KOReader's bold sans (Noto Sans Bold)
+
+local STYLES = {
+    NO = { bg = Blitbuffer.COLOR_BLACK, fg = Blitbuffer.COLOR_WHITE },
+    GO = { bg = Blitbuffer.COLOR_WHITE, fg = Blitbuffer.COLOR_BLACK },
+}
 
 local function load_config()
     local dir = debug.getinfo(1, "S").source:match("^@(.*/)") or "./"
     local ok, cfg = pcall(dofile, dir .. "config.lua")
-    if not ok then
+    if not ok or type(cfg) ~= "table" then
         logger.warn("doorsign: could not read config.lua:", cfg)
         cfg = {}
     end
     cfg.server = (cfg.server or "https://ntfy.sh"):gsub("/+$", "")
     cfg.poll_seconds = tonumber(cfg.poll_seconds) or 60
-    cfg.default_status = cfg.default_status or "FREE"
-    cfg.colors = cfg.colors or {}
-    cfg.colors.BUSY = cfg.colors.BUSY or { 200, 30, 30 }
-    cfg.colors.RECORDING = cfg.colors.RECORDING or { 17, 17, 17 }
-    cfg.colors.FREE = cfg.colors.FREE or { 30, 140, 60 }
-    cfg.colors.CUSTOM = cfg.colors.CUSTOM or { 40, 64, 110 }
-    cfg.dot_color = cfg.dot_color or { 224, 36, 36 }
-    cfg.aliases = cfg.aliases or {}
+    local d = tostring(cfg.default_status or "GO"):upper()
+    cfg.default_status = STYLES[d] and d or "GO"
     return cfg
 end
 
-local function trim(s)
-    return (s or ""):gsub("^%s+", ""):gsub("%s+$", "")
-end
-
-local function rgb(c)
-    return Blitbuffer.ColorRGB32(c[1], c[2], c[3], 0xFF)
+-- "no", " No! ", "GO." -> "NO" / "GO". Anything else -> nil (ignored).
+local function normalize(text)
+    local s = tostring(text or ""):upper():gsub("[^%a]", "")
+    if STYLES[s] then return s end
+    return nil
 end
 
 -- Returns body (string) or nil on failure.
@@ -83,30 +81,54 @@ local function http_request(url, method, body)
     return table.concat(sink)
 end
 
--- Largest font size (from max down) at which every word of `text` fits within `max_w`.
-local function fit_size(text, max_w, max_size, min_size)
-    local size = max_size
-    while size > min_size do
-        local fits = true
-        for word in text:gmatch("%S+") do
-            local tw = TextWidget:new{ text = word, face = Font:getFace(BOLD_FACE, size) }
-            local w = tw:getSize().w
-            tw:free()
-            if w > max_w then fits = false; break end
-        end
-        if fits then return size end
-        size = size - 4
+---------------------------------------------------------------------------
+-- A big X or check mark, drawn as thick strokes (no font glyph needed)
+---------------------------------------------------------------------------
+local Mark = Widget:extend{
+    kind = "NO",
+    size = 400,
+    color = Blitbuffer.COLOR_BLACK,
+}
+
+function Mark:getSize()
+    return Geom:new{ w = self.size, h = self.size }
+end
+
+-- Thick line: stamp squares of side t along the path.
+local function stroke(bb, x0, y0, x1, y1, t, color)
+    local dx, dy = x1 - x0, y1 - y0
+    local len = math.sqrt(dx * dx + dy * dy)
+    local steps = math.max(1, math.ceil(len / math.max(1, t / 6)))
+    local half = t / 2
+    for i = 0, steps do
+        local px = x0 + dx * i / steps
+        local py = y0 + dy * i / steps
+        bb:paintRect(math.floor(px - half), math.floor(py - half), t, t, color)
     end
-    return min_size
+end
+
+function Mark:paintTo(bb, x, y)
+    local s = self.size
+    self.dimen = Geom:new{ x = x, y = y, w = s, h = s }
+    local t = math.floor(s * 0.15)
+    local m = t / 2 + 1
+    if self.kind == "NO" then
+        stroke(bb, x + m, y + m, x + s - m, y + s - m, t, self.color)
+        stroke(bb, x + s - m, y + m, x + m, y + s - m, t, self.color)
+    else
+        local ax, ay = x + s * 0.08, y + s * 0.55
+        local bx, by = x + s * 0.38, y + s * 0.84
+        local cx, cy = x + s * 0.92, y + s * 0.16
+        stroke(bb, ax, ay, bx, by, t, self.color)
+        stroke(bb, bx, by, cx, cy, t, self.color)
+    end
 end
 
 ---------------------------------------------------------------------------
 -- The full-screen sign widget
 ---------------------------------------------------------------------------
 local SignWidget = InputContainer:extend{
-    status = "FREE",  -- already normalized (upper case)
-    kind = "FREE",    -- BUSY / RECORDING / FREE / CUSTOM
-    cfg = nil,
+    status = "GO",
     on_tap = nil,
     on_hold = nil,
 }
@@ -123,41 +145,35 @@ end
 
 function SignWidget:build()
     local w, h = self.dimen.w, self.dimen.h
-    local bg = rgb(self.cfg.colors[self.kind])
-    local text_w = math.floor(w * 0.86)
-    -- Main words get big type; custom text a bit smaller so it can wrap onto a few lines.
-    local max_size = self.kind == "CUSTOM" and 110 or 160
-    local size = fit_size(self.status, text_w, max_size, 28)
+    local style = STYLES[self.status]
+    local mark_size = math.floor(math.min(w * 0.72, h * 0.5))
+    -- Text about a quarter of the screen height, capped so it fits the width.
+    local text_size = math.floor(math.min(h * 0.17, w * 0.32))
 
-    local group = VerticalGroup:new{ align = "center" }
-    if self.kind == "RECORDING" then
-        table.insert(group, TextWidget:new{
-            text = "●",
-            face = Font:getFace(BOLD_FACE, math.floor(size * 1.3)),
-            fgcolor = rgb(self.cfg.dot_color),
-            bgcolor = bg,
-        })
-        table.insert(group, VerticalSpan:new{ width = Screen:scaleBySize(10) })
-    end
-    table.insert(group, TextBoxWidget:new{
-        text = self.status,
-        face = Font:getFace(BOLD_FACE, size),
-        width = text_w,
-        alignment = "center",
-        fgcolor = Blitbuffer.COLOR_WHITE,
-        bgcolor = bg,
-    })
     self[1] = FrameContainer:new{
-        background = bg,
+        background = style.bg,
         bordersize = 0,
         padding = 0,
-        CenterContainer:new{ dimen = Geom:new{ w = w, h = h }, group },
+        CenterContainer:new{
+            dimen = Geom:new{ w = w, h = h },
+            VerticalGroup:new{
+                align = "center",
+                Mark:new{ kind = self.status, size = mark_size, color = style.fg },
+                VerticalSpan:new{ width = math.floor(h * 0.04) },
+                TextWidget:new{
+                    text = self.status,
+                    face = Font:getFace(BOLD_FACE, text_size),
+                    fgcolor = style.fg,
+                    bgcolor = style.bg,
+                },
+            },
+        },
     }
 end
 
-function SignWidget:setStatus(status, kind)
-    if status == self.status and kind == self.kind then return end
-    self.status, self.kind = status, kind
+function SignWidget:setStatus(status)
+    if status == self.status then return end
+    self.status = status
     if self[1] then self[1]:free() end
     self:build()
     -- "full" = flashing refresh: clears e-ink ghosting so the sign looks crisp.
@@ -195,18 +211,8 @@ function DoorSign:addToMainMenu(menu_items)
     }
 end
 
--- Upper-cases the text and works out which design to use.
-function DoorSign:normalize(text)
-    local status = trim(text):upper()
-    status = self.cfg.aliases[status] or status
-    for _, k in ipairs(MAIN) do
-        if status == k then return status, k end
-    end
-    return status, "CUSTOM"
-end
-
 function DoorSign:currentStatus()
-    return G_reader_settings:readSetting("doorsign_status") or self.cfg.default_status
+    return normalize(G_reader_settings:readSetting("doorsign_status")) or self.cfg.default_status
 end
 
 function DoorSign:start()
@@ -216,11 +222,8 @@ function DoorSign:start()
     if self.saved_rotation ~= Screen.DEVICE_ROTATED_UPRIGHT then
         Screen:setRotationMode(Screen.DEVICE_ROTATED_UPRIGHT)
     end
-    local status, kind = self:normalize(self:currentStatus())
     self.sign = SignWidget:new{
-        status = status,
-        kind = kind,
-        cfg = self.cfg,
+        status = self:currentStatus(),
         on_tap = function() self:showPicker() end,
         on_hold = function() self:stop() end,
     }
@@ -242,18 +245,20 @@ function DoorSign:stop()
     end
 end
 
+-- Returns the status if the text was "no"/"go", else nil (and nothing changes).
 function DoorSign:apply(text)
-    if trim(text) == "" then return end
-    local status, kind = self:normalize(text)
+    local status = normalize(text)
+    if not status then return nil end
     G_reader_settings:saveSetting("doorsign_status", status)
-    if self.sign then self.sign:setStatus(status, kind) end
+    if self.sign then self.sign:setStatus(status) end
+    return status
 end
 
 -- Show locally right away, then publish so the phone side stays in sync.
 function DoorSign:set(text)
-    self:apply(text)
+    local status = self:apply(text)
+    if not status then return end
     local url = string.format("%s/%s", self.cfg.server, self.cfg.topic)
-    local status = self:normalize(text)
     NetworkMgr:runWhenOnline(function() http_request(url, "POST", status) end)
 end
 
@@ -268,41 +273,18 @@ function DoorSign:showPicker()
     dialog = ButtonDialog:new{
         title = _("Set door sign"),
         buttons = {
-            { { text = _("Busy"), callback = pick("BUSY") } },
-            { { text = _("Recording"), callback = pick("RECORDING") } },
-            { { text = _("Free"), callback = pick("FREE") } },
-            { { text = _("Custom…"), callback = function()
-                UIManager:close(dialog)
-                self:showCustomInput()
-            end } },
+            { { text = _("No"), callback = pick("NO") } },
+            { { text = _("Go"), callback = pick("GO") } },
         },
     }
     UIManager:show(dialog)
-end
-
-function DoorSign:showCustomInput()
-    local input
-    input = InputDialog:new{
-        title = _("Custom sign text"),
-        input_hint = _("e.g. Back at 3:30"),
-        buttons = { {
-            { text = _("Cancel"), id = "close", callback = function() UIManager:close(input) end },
-            { text = _("Set"), is_enter_default = true, callback = function()
-                local text = input:getInputText()
-                UIManager:close(input)
-                self:set(text)
-            end },
-        } },
-    }
-    UIManager:show(input)
-    input:onShowKeyboard()
 end
 
 function DoorSign:pollOnce()
     if not self.sign then return end
     local function fetch()
         -- since=latest returns only the newest message. ntfy.sh keeps messages ~12h;
-        -- when it has nothing, we simply keep showing the last status.
+        -- when it has nothing (or the newest isn't no/go), we keep the last status.
         local url = string.format("%s/%s/raw?poll=1&since=latest", self.cfg.server, self.cfg.topic)
         local body = http_request(url, "GET")
         if body then
