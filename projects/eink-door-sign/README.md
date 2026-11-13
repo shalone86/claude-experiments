@@ -1,7 +1,19 @@
 # E-ink door sign (PocketBook Color, PB633)
 
-Turn a PocketBook e-reader into a door sign that shows **BUSY** or **OPEN** and
-that you change from your phone over Wi-Fi.
+Turn a PocketBook e-reader into a portrait door sign you change from your phone over Wi-Fi.
+
+![Design mockups](design/mockup.png)
+
+| Status | Background | Text |
+|---|---|---|
+| **BUSY** | Red | White, bold sans, all caps |
+| **RECORDING** | Near-black, with a red dot above the text | same |
+| **FREE** | Green | same |
+| **Custom** (any other text) | Navy | same, wraps onto several lines |
+
+The sign always shows in portrait so the device's chin sits at the bottom. Text is sized as
+large as will fit. Colors can be changed in `config.lua`. Color e-ink shows them more muted
+than a phone does (see the bottom row of the mockup).
 
 **Status:** written, but not yet tested on the device.
 
@@ -15,9 +27,10 @@ that you change from your phone over Wi-Fi.
   PocketBook as an extra app, with no jailbreak and without replacing the stock software.
   The `doorsign.koplugin` plugin in this folder shows the full-screen sign.
 - **[ntfy.sh](https://ntfy.sh)**: free message service that needs no account. Your phone
-  sends "BUSY" or "OPEN" to a private topic name, and the e-reader checks that topic.
-- Whatever text you send is what the sign shows, so `In a meeting until 3pm` works too.
-- On the sign itself: **tap** to switch between BUSY and OPEN, **press and hold** to close the sign.
+  sends "BUSY", "RECORDING" or "FREE" to a private topic name, and the e-reader checks that topic.
+- Any other text you send becomes a custom sign, e.g. `Back at 3:30`.
+- On the sign itself: **tap** for a menu (Busy / Recording / Free / Custom…),
+  **press and hold** to close the sign.
 
 ## Setup
 
@@ -43,10 +56,12 @@ that you change from your phone over Wi-Fi.
 - Open the top menu → Tools (🛠) → **Door sign**.
 
 ### 4. Set up the phone remote
-Save these two links as bookmarks or home-screen shortcuts. Replace `YOURTOPIC` with your topic:
+Save these as bookmarks or home-screen shortcuts. Replace `YOURTOPIC` with your topic:
 
-- BUSY: `https://ntfy.sh/YOURTOPIC/publish?message=BUSY`
-- OPEN: `https://ntfy.sh/YOURTOPIC/publish?message=OPEN`
+- Busy: `https://ntfy.sh/YOURTOPIC/publish?message=BUSY`
+- Recording: `https://ntfy.sh/YOURTOPIC/publish?message=RECORDING`
+- Free: `https://ntfy.sh/YOURTOPIC/publish?message=FREE`
+- Custom: `https://ntfy.sh/YOURTOPIC/publish?message=Back%20at%203:30` (spaces become `%20`)
 
 Opening a link changes the sign within about a minute (set by `poll_seconds`).
 To send custom text, use the free ntfy app or an iOS Shortcut / Android Tasker action
