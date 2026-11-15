@@ -1,0 +1,30 @@
+:root{--bg:#1b1b1f;--fg:#eee;--acc:#e0b84c;--panel:#26262c}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:15px system-ui,sans-serif;overflow:hidden;overscroll-behavior:none}
+body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+header,footer{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--panel);flex:none}
+header #title{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+footer{flex-wrap:wrap;font-size:12px}
+footer label{display:flex;align-items:center;gap:6px;flex:1 1 140px}
+footer input[type=range]{flex:1;min-width:60px}
+button{background:#3a3a42;color:var(--fg);border:0;border-radius:8px;padding:9px 13px;font-size:16px}
+button.primary{background:var(--acc);color:#111;font-weight:600}
+#stage{flex:1;position:relative;overflow:hidden;background:#fff;touch-action:none;user-select:none}
+#world{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
+#ref{position:absolute;left:0;top:0;width:100%;height:100%;opacity:.5;pointer-events:none}
+#ink{position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+#ink path{fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round}
+#live{stroke:#c00!important}
+#empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#333;gap:12px}
+dialog{background:var(--panel);color:var(--fg);border:0;border-radius:14px;padding:18px;width:min(92vw,440px)}
+dialog::backdrop{background:#000a}
+dialog label{display:block;margin:10px 0;font-size:13px}
+dialog label.row{display:flex;gap:8px;align-items:center}
+dialog input:not([type=checkbox]),dialog textarea{width:100%;margin-top:4px;padding:9px;border-radius:8px;border:1px solid #555;background:#17171a;color:var(--fg);font:inherit}
+.btns{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:12px}
+.btns.col{flex-direction:column}
+.hint,.msg{font-size:12px;opacity:.75}
+#gal{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-height:50vh;overflow:auto}
+#gal div{background:#fff;border-radius:6px;aspect-ratio:1;overflow:hidden}
+#gal img{width:100%;height:100%;object-fit:contain}
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#000c;padding:10px 16px;border-radius:20px}
