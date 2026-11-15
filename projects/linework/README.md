@@ -3,7 +3,7 @@
 Quick one-pen line-art tracer for making free Catholic coloring pages from public-domain
 icons and paintings. Built for a phone + S Pen.
 
-**Status:** first working version (draw, stabilize, zoom, export, rotation). Not yet tested on a real phone. No icons bundled yet.
+**Status:** first working version (draw, stabilize, zoom, export, rotation). Not yet tested on a real phone. 20 starter icons from sdcason.com bundled (`icons/`, CC0).
 
 ## How it works
 - Opens on a random picture you haven't finished, shown at 50% opacity.
@@ -25,7 +25,7 @@ menu → **Add to Home screen**. It then runs full-screen and offline.
 
 ## Adding pictures
 - In-app: ☰ → *Add pictures from device…* (stored on the phone).
-- Bundled: drop files in `icons/` and list them in `icons/index.json`:
+- Bundled (20 already, from sdcason.com tag feeds): drop files in `icons/` and list them in `icons/index.json`:
   `[{"id":"x","src":"x.jpg","title":"…","description":"…","tags":["icon"],"source":"URL","license":"public domain"}]`
 - Sources: Wikimedia Commons (Category: Icons), Met Open Access, Google Arts & Culture PD works.
   Check each file's license.
