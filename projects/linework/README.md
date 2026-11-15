@@ -3,7 +3,7 @@
 Quick one-pen line-art tracer for making free Catholic coloring pages from public-domain
 icons and paintings. Built for a phone + S Pen.
 
-**Status:** first working version (draw, stabilize, zoom, export, rotation). Not yet tested on a real phone. 20 starter icons from sdcason.com bundled (`icons/`, CC0).
+**Status:** deployed at https://linework.shalonely.com (Cloudflare Worker, static assets). Not yet tested on a real phone.
 
 ## How it works
 - Opens on a random picture you haven't finished, shown at 50% opacity.
@@ -38,3 +38,7 @@ menu → **Add to Home screen**. It then runs full-screen and offline.
 ## Ideas for later
 Pressure-sensitive width, auto-written description/tags with Claude, closed-shape check for
 colorability, an endpoint on your site, bundled starter icon set.
+
+## Deploy
+`cd projects/linework && npx wrangler@4 deploy` (needs `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`).
+`wrangler.jsonc` serves this folder as static assets on the custom domain `linework.shalonely.com`.
