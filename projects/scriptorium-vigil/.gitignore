@@ -1,0 +1,6 @@
+# build outputs (rebuild with build.py / android/build-apk.sh)
+scriptorium-vigil.html
+android/build/
+android/*.apk
+android/*.apk.idsig
+.DS_Store

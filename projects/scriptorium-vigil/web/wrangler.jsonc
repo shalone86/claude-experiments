@@ -1,0 +1,8 @@
+{
+  // Serves the game at shalonely.com/scriptorium (Cloudflare Workers static assets, no code).
+  // deploy.sh fills public/scriptorium/ with the built game and APK, then runs wrangler deploy.
+  "name": "scriptorium-vigil",
+  "compatibility_date": "2026-11-01",
+  "assets": { "directory": "./public", "html_handling": "auto-trailing-slash", "not_found_handling": "none" },
+  "routes": [ { "pattern": "shalonely.com/scriptorium*", "zone_name": "shalonely.com" } ]
+}
