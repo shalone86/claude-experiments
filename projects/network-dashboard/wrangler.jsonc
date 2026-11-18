@@ -1,0 +1,18 @@
+{
+  // Cloudflare Worker that serves dashboard.shalonely.com (and dashboard.methodiusmedia.com).
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "cloudflare-unified-dashboard",
+  "main": "src/index.js",
+  "compatibility_date": "2024-04-01",
+  "compatibility_flags": ["nodejs_compat"],
+  // Event counts sent by sites (/api/track) and the "Ignore my Wi-Fi" IP list.
+  "kv_namespaces": [{ "binding": "MEDIA_STATS", "id": "fa16721f7aac42e8bf89005ff0dd9f7c" }],
+  "routes": [
+    { "pattern": "dashboard.shalonely.com", "custom_domain": true },
+    { "pattern": "dashboard.methodiusmedia.com", "custom_domain": true }
+  ]
+  // Set in the Cloudflare dashboard, not here (deploy with --keep-vars so they stay):
+  //   CLOUDFLARE_API_TOKEN  secret: reads zone, R2 and Web Analytics data (GraphQL)
+  //   CLOUDFLARE_ACCOUNT_ID variable
+  //   DASHBOARD_PASSWORD    variable: optional password for the page
+}
