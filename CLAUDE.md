@@ -9,6 +9,12 @@ Every new idea lands here by default unless the owner says otherwise.
 - Keep projects self-contained. Don't share code between projects unless it clearly helps;
   if shared code is needed, put it in `shared/`.
 - List every project in the root `README.md` index with a one-line description and status.
+- Each project README has a **Status and next steps** section near the top with three bullets:
+  **Status** (one line), **Last worked on** (date and what changed), and **Next steps**
+  (a short numbered list). New chats pick up a project from this section, so keep it current.
+- At the end of every session that touches a project, update that section and the project's
+  status in the root `README.md` index, and commit it with the rest of the work. Don't wait
+  to be asked.
 - Claude may organize as it sees fit: create branches per idea, restructure folders,
   or suggest splitting an idea into its own repository once it grows large, needs its own
   CI/deploys, or would be shared publicly. Say so when splitting makes more sense.

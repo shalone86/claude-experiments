@@ -14,8 +14,15 @@ characters, so they don't depend on the fonts installed on the device.
 
 The sign always shows in portrait so the device's chin sits at the bottom.
 
-**Status:** KOReader and the plugin install fine on the device. The NO / GO version hasn't been
-run on the device yet.
+## Status and next steps
+
+- **Status:** KOReader and the plugin install fine on the device. The NO / GO version hasn't
+  been run on the device yet.
+- **Last worked on:** 2026-11-12. Switched from the color signs to black-and-white NO / GO.
+- **Next steps:**
+  1. Copy the updated `doorsign.koplugin` to the e-reader and open Tools → Door sign.
+  2. Check that NO and GO look sharp and that the phone bookmarks change the sign.
+  3. Check how long the battery lasts with Wi-Fi on, or set it up plugged in.
 
 ## How it works
 
