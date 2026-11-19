@@ -12,6 +12,15 @@ repo, so `src/index.js` is the deployed bundle as downloaded from Cloudflare on 
 - angelio.org now counts video plays, song plays and downloads, from the site and from the
   `watch-media` R2 bucket that holds Angelio's Watch & Sing files
 
+## Status and next steps
+
+- **Status:** live at https://dashboard.shalonely.com.
+- **Last worked on:** 2026-11-18. Put the deployed code in this repo, removed
+  kids.methodiusmedia.com, and added Angelio's video plays, song plays and downloads.
+- **Next steps:**
+  1. Switch the old courses.methodiusmedia.com entry to catholiccourses.org.
+  2. After a few days, check that angelio.org's play and download numbers look right.
+
 ## How it counts
 
 | What | Where it comes from |
