@@ -6,6 +6,7 @@ A home for random ideas and experiments. Each one lives in `projects/`.
 |---|---|---|
 | [eink-door-sign](projects/eink-door-sign/) | Turn a PocketBook e-reader into a wireless black-and-white NO / GO door sign | Installs on device; NO / GO version not yet run |
 | [github-sync](projects/github-sync/) | Pulls every shalone86 GitHub repo on this Mac up to date every 15 minutes (pull only) | Live |
+| [sdcason-liturgical-seasons](projects/sdcason-liturgical-seasons/) | sdcason.com homepage shows Advent, Christmas, Lent, Holy Week, Easter and Pentecost posts in season | Live |
 | [network-dashboard](projects/network-dashboard/) | Traffic, plays and downloads for all of Shalone's sites on one page (dashboard.shalonely.com) | Live |
 
 ## Picking up where you left off

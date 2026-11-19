@@ -1,0 +1,74 @@
+<!-- BACKUP of the original FCG-RANDOM-HOME block (v4), taken 2026-11-19 before the liturgical-season update.
+     To restore: replace YOUR_CONTENT_API_KEY with your Content API key and paste this over the
+     FCG-RANDOM-HOME START ... END block in Ghost Admin → Settings → Code injection → Site footer. -->
+<!-- FCG-RANDOM-HOME START (managed by Claude; see docs/batch/random_home.html) -->
+<script>
+(function () {
+  if (location.pathname !== '/' || !document.body.classList.contains('home-template')) return;
+  var wrap = document.querySelector('.loop-section .loop-wrap');
+  var cards = wrap ? wrap.querySelectorAll('article.item') : [];
+  if (!wrap || !cards.length) return;
+  var KEY = 'YOUR_CONTENT_API_KEY', COUNT = cards.length, PAGES = 8, PER_PAGE = 100;
+  var today;
+  try { today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' }); } catch (e) { today = new Date().toISOString().slice(0, 10); }
+  var CK = 'fcg-random-home-' + today + '-v4';
+  var hide = document.createElement('style');
+  hide.textContent = '.home-template .loop-section .loop-wrap{opacity:0;transition:opacity .25s ease}';
+  document.head.appendChild(hide);
+  function reveal() { hide.textContent = '.home-template .loop-section .loop-wrap{opacity:1;transition:opacity .25s ease}'; }
+  var failsafe = setTimeout(reveal, 4500);
+  var heading = document.querySelector('.loop-section .loop-subtitle-title'); if (heading) heading.innerHTML = 'Explore the <br><span>Gallery</span>';
+  function rng(seedStr) {
+    var h = 1779033703 ^ seedStr.length;
+    for (var i = 0; i < seedStr.length; i++) { h = Math.imul(h ^ seedStr.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); }
+    var a = h >>> 0;
+    return function () { a |= 0; a = (a + 0x6D2B79F5) | 0; var t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+  function shuffle(arr, r) { for (var i = arr.length - 1; i > 0; i--) { var j = Math.floor(r() * (i + 1)), t = arr[i]; arr[i] = arr[j]; arr[j] = t; } return arr; }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function api(q) { return fetch('/ghost/api/content/posts/?key=' + KEY + '&filter=tag:-hash-ai-image%2Btag:-saint-of-the-day%2Btag:-newsletter%2Btag:-benedict&' + q).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }); }
+  function pick() {
+    try { var c = JSON.parse(localStorage.getItem(CK) || 'null'); if (c && c.length >= COUNT) return Promise.resolve(c); } catch (e) {}
+    var r = rng(today);
+    return api('limit=1&fields=id').then(function (m) {
+      var total = m.meta.pagination.total, nPages = Math.max(1, Math.ceil(total / PER_PAGE)), pages = [];
+      for (var i = 1; i <= nPages; i++) pages.push(i);
+      pages = shuffle(pages, r).slice(0, Math.min(PAGES, nPages));
+      return Promise.all(pages.map(function (p) { return api('limit=' + PER_PAGE + '&page=' + p + '&fields=title,url,feature_image,custom_excerpt,excerpt&include=tags'); }));
+    }).then(function (res) {
+      var perPage = Math.ceil(COUNT / res.length), out = [], seen = {};
+      res.forEach(function (x) {
+        var posts = shuffle(x.posts.filter(function (p) { return p.feature_image; }), r).slice(0, perPage);
+        posts.forEach(function (p) { if (!seen[p.url]) { seen[p.url] = 1; out.push(p); } });
+      });
+      out = shuffle(out, r).slice(0, COUNT);
+      try { for (var k = localStorage.length - 1; k >= 0; k--) { var kk = localStorage.key(k); if (kk && kk.indexOf('fcg-random-home-') === 0 && kk !== CK) localStorage.removeItem(kk); } localStorage.setItem(CK, JSON.stringify(out)); } catch (e) {}
+      return out;
+    });
+  }
+  function sized(u, w) { return u.replace(/^(https?:\/\/[^\/]+)?\/content\/images\/(?!size\/)/, function (m, h) { return (h || '') + '/content/images/size/w' + w + '/'; }); }
+  function path(u) { return u.replace(/^https?:\/\/[^\/]+/, ''); }
+  function fill(card, p) {
+    var link = path(p.url), img = card.querySelector('.item-image > a img'), imgA = card.querySelector('.item-image > a');
+    if (imgA) { imgA.setAttribute('href', link); imgA.setAttribute('alt', 'link: ' + p.title); }
+    if (img) {
+      var f = p.feature_image;
+      img.setAttribute('srcset', path(sized(f, 300)) + ' 300w, ' + path(sized(f, 600)) + ' 600w, ' + path(sized(f, 1200)) + ' 1200w');
+      img.setAttribute('src', path(sized(f, 1200))); img.setAttribute('alt', p.title);
+    }
+    var t = card.querySelector('.item-title a'); if (t) { t.setAttribute('href', link); t.textContent = p.title; }
+    var tagsBox = card.querySelector('.item-tags');
+    if (tagsBox) {
+      var tg = (p.tags || []).slice(0, 3).map(function (x) { return '<a href="' + path(x.url) + '">' + esc(x.name) + '</a>'; });
+      tagsBox.innerHTML = tg.length ? tg[0] + (tg.length > 1 ? '<span>' + tg.slice(1).join('') + '</span>' : '') : '';
+    }
+    var ex = card.querySelector('.item-excerpt');
+    if (ex) { var s = (p.custom_excerpt || p.excerpt || '').replace(/\s+/g, ' ').trim(); ex.textContent = s.length > 220 ? s.slice(0, 217).replace(/\s+\S*$/, '') + '…' : s; }
+  }
+  pick().then(function (posts) {
+    for (var i = 0; i < cards.length && i < posts.length; i++) fill(cards[i], posts[i]);
+    document.body.classList.add('fcg-random-home');
+  }).catch(function () {}).then(function () { clearTimeout(failsafe); reveal(); });
+})();
+</script>
+<!-- FCG-RANDOM-HOME END -->
