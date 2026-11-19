@@ -1,0 +1,152 @@
+<!-- FCG-RANDOM-HOME START (managed by Claude; see docs/batch/random_home.html) -->
+<script>
+(function () {
+  if (location.pathname !== '/' || !document.body.classList.contains('home-template')) return;
+  var wrap = document.querySelector('.loop-section .loop-wrap');
+  var cards = wrap ? wrap.querySelectorAll('article.item') : [];
+  if (!wrap || !cards.length) return;
+  var KEY = 'YOUR_CONTENT_API_KEY', COUNT = cards.length, PAGES = 8, PER_PAGE = 100;
+  var BASE_FILTER = 'tag:-hash-ai-image+tag:-saint-of-the-day+tag:-newsletter+tag:-benedict';
+
+  // ---- LITURGICAL SEASONS: edit tags / share here ----
+  var SEASONAL_SHARE = 0.5; // fraction of homepage cards that come from seasonal tags
+  var SEASONS = {
+    'advent':    { label: 'Advent',        tags: ['advent'] },
+    'christmas': { label: 'Christmas',     tags: ['christmas', 'nativity-paintings', 'nativity-coloring-pages'] },
+    'lent':      { label: 'Lent',          tags: ['lent', 'jesus-passion-paintings', 'jesus-passion-coloring-pages'] },
+    'holy-week': { label: 'Holy Week',     tags: ['holy-week'] },
+    'easter':    { label: 'Easter',        tags: ['easter'] },
+    'pentecost': { label: 'Pentecost',     tags: ['pentecost'] },
+    'ordinary':  { label: 'Ordinary Time', tags: [] }
+  };
+
+  var today;
+  try { today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' }); } catch (e) { today = new Date().toISOString().slice(0, 10); }
+  var preview = /[?&]season-date=(\d{4}-\d{2}-\d{2})/.exec(location.search);
+  if (preview) today = preview[1];
+
+  // Roman Rite (US) calendar
+  function d(y, m, day) { return new Date(y, m - 1, day); }
+  function addDays(x, n) { var r = new Date(x); r.setDate(r.getDate() + n); return r; }
+  function easter(y) {
+    var a = y % 19, b = Math.floor(y / 100), c = y % 100, dd = Math.floor(b / 4), e = b % 4,
+        f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), h = (19 * a + b - dd - g + 15) % 30,
+        i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+    return d(y, Math.floor((h + l - 7 * m + 114) / 31), ((h + l - 7 * m + 114) % 31) + 1);
+  }
+  function seasonFor(t) {
+    var y = t.getFullYear(), e = easter(y), xmas = d(y, 12, 25), dow = xmas.getDay();
+    var adventStart = addDays(xmas, -(dow === 0 ? 7 : dow) - 21);
+    var jan2 = d(y, 1, 2), epiphany = addDays(jan2, (7 - jan2.getDay()) % 7);
+    var baptism = epiphany.getDate() >= 7 ? addDays(epiphany, 1) : addDays(epiphany, 7);
+    var pentecost = addDays(e, 49);
+    if (t >= adventStart && t < xmas) return 'advent';
+    if (t >= xmas || t <= baptism) return 'christmas';
+    if (t >= addDays(e, -46) && t < addDays(e, -7)) return 'lent';
+    if (t >= addDays(e, -7) && t < e) return 'holy-week';
+    if (t >= e && t < addDays(pentecost, -6)) return 'easter';
+    if (t <= pentecost && t >= addDays(pentecost, -6)) return 'pentecost';
+    return 'ordinary';
+  }
+  var ymd = today.split('-');
+  var season = seasonFor(d(+ymd[0], +ymd[1], +ymd[2]));
+  var seasonTags = SEASONS[season].tags;
+  window.FCG_SEASON = { season: season, label: SEASONS[season].label, tags: seasonTags };
+  document.body.classList.add('season-' + season);
+
+  var CK = 'fcg-random-home-' + today + '-' + season + '-v5';
+  var hide = document.createElement('style');
+  hide.textContent = '.home-template .loop-section .loop-wrap{opacity:0;transition:opacity .25s ease}';
+  document.head.appendChild(hide);
+  function reveal() { hide.textContent = '.home-template .loop-section .loop-wrap{opacity:1;transition:opacity .25s ease}'; }
+  var failsafe = setTimeout(reveal, 4500);
+  var heading = document.querySelector('.loop-section .loop-subtitle-title');
+  if (heading) heading.innerHTML = seasonTags.length
+    ? esc(SEASONS[season].label) + ' in the <br><span>Gallery</span>'
+    : 'Explore the <br><span>Gallery</span>';
+  function rng(seedStr) {
+    var h = 1779033703 ^ seedStr.length;
+    for (var i = 0; i < seedStr.length; i++) { h = Math.imul(h ^ seedStr.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); }
+    var a = h >>> 0;
+    return function () { a |= 0; a = (a + 0x6D2B79F5) | 0; var t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+  function shuffle(arr, r) { for (var i = arr.length - 1; i > 0; i--) { var j = Math.floor(r() * (i + 1)), t = arr[i]; arr[i] = arr[j]; arr[j] = t; } return arr; }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function api(q, extraFilter) {
+    var filter = BASE_FILTER + (extraFilter ? '+' + extraFilter : '');
+    return fetch('/ghost/api/content/posts/?key=' + KEY + '&filter=' + encodeURIComponent(filter) + '&' + q).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); });
+  }
+  var FIELDS = '&fields=title,url,feature_image,custom_excerpt,excerpt&include=tags';
+
+  // Daily random pick from the whole gallery (unchanged behaviour)
+  function pickRandom(r, n) {
+    if (n <= 0) return Promise.resolve([]);
+    return api('limit=1&fields=id').then(function (m) {
+      var total = m.meta.pagination.total, nPages = Math.max(1, Math.ceil(total / PER_PAGE)), pages = [];
+      for (var i = 1; i <= nPages; i++) pages.push(i);
+      pages = shuffle(pages, r).slice(0, Math.min(PAGES, nPages));
+      return Promise.all(pages.map(function (p) { return api('limit=' + PER_PAGE + '&page=' + p + FIELDS); }));
+    }).then(function (res) {
+      var perPage = Math.ceil(n / res.length), out = [];
+      res.forEach(function (x) { out = out.concat(shuffle(x.posts.filter(function (p) { return p.feature_image; }), r).slice(0, perPage)); });
+      return out;
+    });
+  }
+
+  // Daily pick from the season's tags (up to 3 pages of 100)
+  function pickSeasonal(r, n) {
+    if (!seasonTags.length || n <= 0) return Promise.resolve([]);
+    var tf = 'tag:[' + seasonTags.join(',') + ']';
+    return api('limit=' + PER_PAGE + '&page=1' + FIELDS, tf).then(function (first) {
+      var nPages = Math.min(3, first.meta.pagination.pages || 1), more = [];
+      for (var p = 2; p <= nPages; p++) more.push(api('limit=' + PER_PAGE + '&page=' + p + FIELDS, tf));
+      return Promise.all(more).then(function (rest) {
+        var all = first.posts;
+        rest.forEach(function (x) { all = all.concat(x.posts); });
+        return shuffle(all.filter(function (p) { return p.feature_image; }), r).slice(0, n);
+      });
+    }).catch(function () { return []; });
+  }
+
+  function pick() {
+    if (!preview) { try { var c = JSON.parse(localStorage.getItem(CK) || 'null'); if (c && c.length >= COUNT) return Promise.resolve(c); } catch (e) {} }
+    var r = rng(today);
+    var wantSeasonal = seasonTags.length ? Math.ceil(COUNT * SEASONAL_SHARE) : 0;
+    return pickSeasonal(r, wantSeasonal).then(function (seasonal) {
+      return pickRandom(r, COUNT).then(function (random) {
+        var out = [], seen = {};
+        // Seasonal posts first, then fill the rest with the daily random mix
+        seasonal.concat(shuffle(random, r)).forEach(function (p) { if (!seen[p.url] && out.length < COUNT) { seen[p.url] = 1; out.push(p); } });
+        if (!preview) {
+          try { for (var k = localStorage.length - 1; k >= 0; k--) { var kk = localStorage.key(k); if (kk && kk.indexOf('fcg-random-home-') === 0 && kk !== CK) localStorage.removeItem(kk); } localStorage.setItem(CK, JSON.stringify(out)); } catch (e) {}
+        }
+        return out;
+      });
+    });
+  }
+  function sized(u, w) { return u.replace(/^(https?:\/\/[^\/]+)?\/content\/images\/(?!size\/)/, function (m, h) { return (h || '') + '/content/images/size/w' + w + '/'; }); }
+  function path(u) { return u.replace(/^https?:\/\/[^\/]+/, ''); }
+  function fill(card, p) {
+    var link = path(p.url), img = card.querySelector('.item-image > a img'), imgA = card.querySelector('.item-image > a');
+    if (imgA) { imgA.setAttribute('href', link); imgA.setAttribute('alt', 'link: ' + p.title); }
+    if (img) {
+      var f = p.feature_image;
+      img.setAttribute('srcset', path(sized(f, 300)) + ' 300w, ' + path(sized(f, 600)) + ' 600w, ' + path(sized(f, 1200)) + ' 1200w');
+      img.setAttribute('src', path(sized(f, 1200))); img.setAttribute('alt', p.title);
+    }
+    var t = card.querySelector('.item-title a'); if (t) { t.setAttribute('href', link); t.textContent = p.title; }
+    var tagsBox = card.querySelector('.item-tags');
+    if (tagsBox) {
+      var tg = (p.tags || []).filter(function (x) { return x.visibility !== 'internal' && String(x.name).charAt(0) !== '#'; }).slice(0, 3).map(function (x) { return '<a href="' + path(x.url) + '">' + esc(x.name) + '</a>'; });
+      tagsBox.innerHTML = tg.length ? tg[0] + (tg.length > 1 ? '<span>' + tg.slice(1).join('') + '</span>' : '') : '';
+    }
+    var ex = card.querySelector('.item-excerpt');
+    if (ex) { var s = (p.custom_excerpt || p.excerpt || '').replace(/\s+/g, ' ').trim(); ex.textContent = s.length > 220 ? s.slice(0, 217).replace(/\s+\S*$/, '') + '…' : s; }
+  }
+  pick().then(function (posts) {
+    for (var i = 0; i < cards.length && i < posts.length; i++) fill(cards[i], posts[i]);
+    document.body.classList.add('fcg-random-home');
+  }).catch(function () {}).then(function () { clearTimeout(failsafe); reveal(); });
+})();
+</script>
+<!-- FCG-RANDOM-HOME END -->
