@@ -1847,6 +1847,34 @@ const TileForge = (() => {
     setTimeout(runCoach, 0);
   }
 
+  // What an Audit actually does, in plain words (first-time hints).
+  function auditHelp(a) {
+    if (!a) return '';
+    const ls = (a.mutedChars || '').split('');
+    const letters = ls.length > 1 ? ls.slice(0, -1).join(', ') + ' and ' + ls[ls.length - 1] : ls.join('');
+    const lower = a.goalMult && a.goalMult < 1 ? ' The goal is lower to make up for it.' : '';
+    const say = {
+      half_vowels: 'Vowels (A E I O U) score half their points. Lean on consonants.',
+      mute_1_vowel: `${letters || 'One vowel'} scores 0 points. Build words around the other vowels.`,
+      mute_2_vowels: `${letters || 'Two vowels'} score 0 points. Build words around the other vowels.`,
+      half_cons: 'Consonants score half their points. Vowel-heavy words do better.',
+      no_plosives: `${letters} score 0 points. Spell around them.`,
+      no_fricatives: `${letters} score 0 points. Spell around them.`,
+      no_liquids: `${letters} score 0 points. Spell around them.`,
+      no_start_cons: 'If a word starts with a consonant, that first letter scores 0. Start with a vowel when you can.',
+      no_end_cons: 'If a word ends with a consonant, that last letter scores 0. End on a vowel when you can.',
+      snuffed: 'The candle is out: no ×3 or ×2 slots, unless your flame forges light them.',
+      min_4: 'Only words of 4 or 5 tiles count. Shorter words score 0.',
+      max_3: 'Only words of 1 to 3 tiles count. Longer words score 0.',
+      must_repeat: 'Your word must use a letter twice, like BOOK or TREE, or it scores 0.',
+      lead_tiles: 'Two lead slugs (Pb) are mixed into your bag. They’re worth 0 and can’t spell anything: swap them out, or play one alone for 0 to clear it.',
+      no_replay: 'Replay forges (↻) don’t fire this round.',
+      ban_word: `You played “${a.bannedWord}” too often. It, and any word containing it, scores 0 this round.`,
+      censor_tile: `You leaned on ${a.censoredKey === '?' ? 'Wild ?' : a.censoredKey} too much. Those tiles score 0 and halve the word’s score this round.`
+    }[a.id] || a.desc;
+    return `<b>${esc(a.name)}:</b> ${say}${lower}`;
+  }
+
   // ---- First-time hints: one at a time, only until you've done the thing ----
   function pickCoach() {
     const seen = (id) => coachSeen[id];
@@ -1873,7 +1901,18 @@ const TileForge = (() => {
         else return { id: 'hold', sel: '.rack-tiles', above: true, gotIt: true,
           text: hover ? 'Hover a letter to see its points and forges.' : 'Press and hold a letter to see its points and forges.' };
       }
-      if (!seen('audit') && audit && isAudit()) return { id: 'audit', sel: '.audit-banner', gotIt: true, text: 'This is an Audit, the boss round. Its special rule is written here.' };
+      if (!seen('audit') && Object.keys(coachSeen).some(k => k.startsWith('audit:'))) coachMark('audit');
+      if (isAudit() && S.audit) {
+        const key = 'audit:' + S.audit.id;
+        if (!seen(key)) {
+          const lead = S.audit.id === 'lead_tiles' && document.querySelector('.rack-tiles .tile.lead');
+          return { id: key, sel: lead ? '.rack-tiles .tile.lead' : '.audit-banner', above: !!lead, gotIt: true,
+            text: (seen('audit') ? '' : 'This is an Audit, the boss round with a special rule. ') + auditHelp(S.audit) };
+        }
+        if (!seen('audit')) coachMark('audit');
+      }
+      if (!seen('more') && seen('hold') && seen('forge')) return { id: 'more', sel: '#ws-nav [data-act="rules"]', gotIt: true,
+        text: 'That’s the basics. Rules has the rest, and the Menu has sound, difficulty and Stakes.' };
       return null;
     }
     if (S.phase === 'shop') {
@@ -1885,7 +1924,11 @@ const TileForge = (() => {
         if (S.shopCards.some(c => c.sold)) coachMark('forge');
         else if (S.shopMode === 'card') return { id: 'forge', sel: '.wb-tiles', text: 'Now tap a letter. Every copy of it in your bag gets the forge.' };
       }
-      if (!seen('audit') && audit) return { id: 'audit', sel: '.audit-banner', gotIt: true, text: 'An Audit is coming: a boss round with a special rule. Here’s what it does.' };
+      const nextAudit = S.stageInTerrace === 2 ? S.nextAudit : S.audit;
+      if (!seen('audit') && audit) return { id: 'audit', sel: '.audit-banner', gotIt: true,
+        text: 'An Audit is coming: a boss round with a special rule. ' + auditHelp(nextAudit) };
+      if (!seen('more') && seen('hold') && seen('forge')) return { id: 'more', sel: '#ws-nav [data-act="rules"]', gotIt: true,
+        text: 'That’s the basics. Rules has the rest, and the Menu has sound, difficulty and Stakes.' };
     }
     return null;
   }
@@ -2191,6 +2234,11 @@ const TileForge = (() => {
 
     // Desktop HTML5 Drag & Drop (Play mode)
     app.addEventListener('dragstart', e => {
+      // touch has its own drag (below); the browser's drag would cancel a press-and-hold tooltip
+      if (lastPtr !== 'mouse' || touchDrag) {
+        e.preventDefault();
+        return;
+      }
       if (S.phase !== 'play' || S.busy || S.broken || S.swapSet) {
         e.preventDefault();
         return;
@@ -2327,6 +2375,8 @@ const TileForge = (() => {
     app.addEventListener('pointercancel', e => finishTouchDrag(e, false));
 
     window.addEventListener('pointerdown', e => { lastPtr = e.pointerType || 'mouse'; }, { capture: true });
+    // no phone context menu on a long-pressed tile
+    app.addEventListener('contextmenu', e => { if (e.target.closest('[data-tf-tile]')) e.preventDefault(); });
     app.addEventListener('pointerover', e => {
       if (e.pointerType !== 'mouse') return;
       const el = e.target.closest('[data-tip-text]');
