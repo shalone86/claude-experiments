@@ -202,6 +202,18 @@ function createAntiSpamWordAudit(word) {
   };
 }
 
+// Anti-spam for vowel-only builds: no single vowel is played often enough to be censored,
+// so this one looks at the whole build instead.
+function createVowelFastAudit() {
+  return {
+    id: 'vowel_fast',
+    dynamic: true,
+    name: 'The Vowel Fast',
+    desc: 'Your build leans on vowels! Vowels (A E I O U) score 0 and their forges don’t fire this Audit.',
+    goalMult: 0.88
+  };
+}
+
 function createAntiSpamTileAudit(key) {
   const k = String(key || '').toUpperCase();
   const label = k === '?' ? 'Wild ?' : `${k} tiles`;

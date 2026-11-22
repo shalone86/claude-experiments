@@ -173,6 +173,12 @@ const TileForge = (() => {
   const MAX_WILD_TILES = 2;
   const WORD_SPAM_THRESHOLD = 3;
   const TILE_SPAM_THRESHOLD = 7;
+  // The Vowel Fast: scheduled when 70% of your forges sit on vowels (6+ forges), or 60% of
+  // the letters you've played are vowels (20+ plays). Ordinary English runs about 40% vowels.
+  const VOWEL_FAST_FORGE_SHARE = 0.7;
+  const VOWEL_FAST_MIN_FORGES = 6;
+  const VOWEL_FAST_PLAY_SHARE = 0.6;
+  const VOWEL_FAST_MIN_PLAYS = 20;
 
   const STAKES = [
     { id: 'white',  icon: '⚪', name: 'White Stake',  short: 'White',  wordsPerStage: 4, swapsPerStage: 3, goalMult: 1,    noFuse: false, shopPriceAdd: 0, desc: 'Base rules: 4 Words, 3 Swaps, full Forge.' },
@@ -263,24 +269,43 @@ const TileForge = (() => {
         candidates.push({ type: 'tile', key: k, tag: 'T:' + k, pressure: cnt / TILE_SPAM_THRESHOLD });
       }
     }
+    // Vowel-heavy builds: most forges sit on vowels, or most letters played lately are vowels.
+    {
+      const best = new Map(); // forges on the most-forged copy of each letter
+      for (const t of S.bag) {
+        if (t.lead || t.wild) continue;
+        const k = letterKey(t);
+        best.set(k, Math.max(best.get(k) || 0, t.mods.length));
+      }
+      let vForges = 0, allForges = 0;
+      for (const [k, n] of best) { allForges += n; if ('AEIOU'.includes(k)) vForges += n; }
+      let vPlays = 0, allPlays = 0;
+      for (const [k, n] of Object.entries(S.tileCounts)) { allPlays += n; if ('AEIOU'.includes(k)) vPlays += n; }
+      const forgeShare = allForges >= VOWEL_FAST_MIN_FORGES ? vForges / allForges : 0;
+      const playShare = allPlays >= VOWEL_FAST_MIN_PLAYS ? vPlays / allPlays : 0;
+      const pressure = Math.max(forgeShare / VOWEL_FAST_FORGE_SHARE, playShare / VOWEL_FAST_PLAY_SHARE);
+      if (pressure >= 1) candidates.push({ type: 'vowels', key: 'V', tag: 'V', pressure });
+    }
     if (!candidates.length) return null;
     candidates.sort((a, b) => b.pressure - a.pressure);
     const pick = candidates.find(c => c.tag !== S.lastDynamicAuditKey) || candidates[0];
-    const dynAudit = pick.type === 'word'
-      ? createAntiSpamWordAudit(pick.key)
-      : createAntiSpamTileAudit(pick.key);
+    const dynAudit = pick.type === 'word' ? createAntiSpamWordAudit(pick.key)
+      : pick.type === 'vowels' ? createVowelFastAudit()
+        : createAntiSpamTileAudit(pick.key);
 
     if (S.stageInTerrace < 2) {
       const same = S.audit && S.audit.dynamic && (
         (S.audit.id === 'ban_word' && pick.type === 'word' && S.audit.bannedWord === pick.key) ||
-        (S.audit.id === 'censor_tile' && pick.type === 'tile' && S.audit.censoredKey === pick.key)
+        (S.audit.id === 'censor_tile' && pick.type === 'tile' && S.audit.censoredKey === pick.key) ||
+        (S.audit.id === 'vowel_fast' && pick.type === 'vowels')
       );
       S.audit = dynAudit;
       if (!same && notify) showToast(`⚔️ Anti-Spam Audit Scheduled: ${dynAudit.name}`);
     } else {
       const same = S.nextAudit && S.nextAudit.dynamic && (
         (S.nextAudit.id === 'ban_word' && pick.type === 'word' && S.nextAudit.bannedWord === pick.key) ||
-        (S.nextAudit.id === 'censor_tile' && pick.type === 'tile' && S.nextAudit.censoredKey === pick.key)
+        (S.nextAudit.id === 'censor_tile' && pick.type === 'tile' && S.nextAudit.censoredKey === pick.key) ||
+        (S.nextAudit.id === 'vowel_fast' && pick.type === 'vowels')
       );
       S.nextAudit = dynAudit;
       if (!same && notify) showToast(`⚔️ Next Terrace Audit Scheduled: ${dynAudit.name}`);
@@ -461,6 +486,11 @@ const TileForge = (() => {
     const steps = [];
 
     const audit = isAudit() ? S.audit : null;
+    // The Vowel Fast: vowel tiles score 0 and their forges (light included) don't fire this round
+    const fasting = !!(audit && audit.id === 'vowel_fast');
+    const fast = (t) => (t && fasting && !t.lead && tileCategory(t) === 'vowel' ? { ...t, val: 0, mods: [] } : t);
+    if (fasting) v = { ...v, tiles: v.tiles.map(fast) };
+    const lineForLight = fasting ? S.line.map(fast) : S.line;
     const snuffed = !!(audit && audit.id === 'snuffed');
     const noReplay = !!(audit && audit.id === 'no_replay');
     const isConsChar = ch => !!ch && /[A-Z]/.test(ch) && !'AEIOU'.includes(ch);
@@ -469,7 +499,7 @@ const TileForge = (() => {
       ? { trig: v.tiles.map(() => 1), pingPongPairs: new Set() }
       : computeTriggers(v.tiles);
 
-    const lightLevels = computeSlotLights(S.line, S.candleSlot, countMod, snuffed);
+    const lightLevels = computeSlotLights(lineForLight, S.candleSlot, countMod, snuffed);
 
     const simVal = v.tiles.map((t, j) => {
       if (t.lead) return 0;
@@ -1870,6 +1900,7 @@ const TileForge = (() => {
       lead_tiles: 'Two lead slugs (Pb) are mixed into your bag. They’re worth 0 and can’t spell anything: swap them out, or play one alone for 0 to clear it.',
       no_replay: 'Replay forges (↻) don’t fire this round.',
       ban_word: `You played “${a.bannedWord}” too often. It, and any word containing it, scores 0 this round.`,
+      vowel_fast: 'Your build leans on vowels. This round, vowels (A E I O U) score 0 and their forges don’t fire: your consonants and letter pairs have to carry the words.',
       censor_tile: `You leaned on ${a.censoredKey === '?' ? 'Wild ?' : a.censoredKey} too much. Those tiles score 0 and halve the word’s score this round.`
     }[a.id] || a.desc;
     return `<b>${esc(a.name)}:</b> ${say}${lower}`;
@@ -2123,6 +2154,9 @@ const TileForge = (() => {
           } else if (S.audit && S.audit.id === 'censor_tile' && S.audit.censoredKey) {
             S.tileCounts[S.audit.censoredKey] = 0;
             S.lastDynamicAuditKey = 'T:' + S.audit.censoredKey;
+          } else if (S.audit && S.audit.id === 'vowel_fast') {
+            for (const k of 'AEIOU') S.tileCounts[k] = 0;
+            S.lastDynamicAuditKey = 'V';
           }
           S.audit = S.nextAudit || popAuditFromBag(true);
           S.nextAudit = popAuditFromBag(true);
