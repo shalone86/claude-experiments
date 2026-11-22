@@ -113,14 +113,56 @@ const TileForge = (() => {
   };
   const ONE_COPY = new Set(['forge_combo', 'wild_self']);
   const tipFor = (u) => TIPS[u.id] + (ONE_COPY.has(u.id) ? '' : ' Forges every copy of the letter you pick.');
-  const FLAME_SVG = '<svg class="g-flame" viewBox="0 0 12 16" aria-hidden="true"><path d="M6 .4C7.6 4 11.2 6 11.2 10.2a5.2 5.2 0 0 1-10.4 0c0-2.3 1.2-3.7 2.5-5 .2 1.9 1 2.9 2.1 2.9C5 5 5.2 2.6 6 .4z"/></svg>';
+  // Forge colours: blue points, red multiply, purple replay, gold light and money, green tricks.
+  const FORGE_COL = { pts: '#1f4fa3', mult: '#b5301c', echo: '#7b3ba8', gold: '#a8730f', green: '#2e846c' };
+  const TAG_H = { big: 34, inline: 19, mini: 15 };
+  const FLAME_PATH = 'M6 .4C7.6 4 11.2 6 11.2 10.2a5.2 5.2 0 0 1-10.4 0c0-2.3 1.2-3.7 2.5-5 .2 1.9 1 2.9 2.1 2.9C5 5 5.2 2.6 6 .4z';
+  const countBubble = (x, h, n) =>
+    `<circle cx="${x}" cy="${h * 0.24}" r="${h * 0.28}" fill="#2b1b0f" stroke="#f4d886" stroke-width="1"/>` +
+    `<text x="${x}" y="${h * 0.24}" text-anchor="middle" dominant-baseline="central" font-size="${h * 0.36}" fill="#f4d886">${n}</text>`;
+  // A soft tag: a rounded plate whose nose points at the tile it affects (none = itself, both = the whole word).
   function glyphHtml(u, opts = {}) {
     const [dir, label] = GLYPHS[u.id] || ['self', u.chip];
-    const body = label === '*' ? FLAME_SVG : `<b>${esc(label)}</b>`;
-    const l = dir === 'left' || dir === 'both' ? '<i class="ga ga-l"></i>' : '';
-    const r = dir === 'right' || dir === 'both' ? '<i class="ga ga-r"></i>' : '';
-    const n = opts.count > 1 ? `<sup>${opts.count}</sup>` : '';
-    return `<span class="glyph g-${u.color}${opts.cls ? ' ' + opts.cls : ''}">${l}${body}${r}${n}</span>`;
+    const h = TAG_H[opts.cls] || TAG_H.inline;
+    const flame = label === '*';
+    const w = h * (flame ? 1.05 : 0.5 + 0.4 * [...label].length);
+    const p = h * 0.4, j = h * 0.24;
+    const L = dir === 'left' || dir === 'both', R = dir === 'right' || dir === 'both';
+    const x0 = L ? p + j / 2 + 1 : j / 2 + 1, x1 = x0 + w;
+    const W = x1 + (R ? p + j / 2 + 1 : j / 2 + 1) + (opts.count > 1 ? h * 0.45 : 0), H = h + 2;
+    const cy = H / 2, y0 = 1 + j / 2, y1 = H - 1 - j / 2;
+    const pts = [[x0, y0], [x1, y0], ...(R ? [[x1 + p, cy]] : []), [x1, y1], [x0, y1], ...(L ? [[x0 - p, cy]] : [])]
+      .map(q => q.map(n => n.toFixed(1)).join(',')).join(' ');
+    const col = FORGE_COL[u.color] || '#3b2415';
+    const mid = (x0 + x1) / 2;
+    const body = flame
+      ? `<path transform="translate(${(mid - 6 * h / 24).toFixed(1)},${(cy - 8 * h / 24).toFixed(1)}) scale(${(h / 24).toFixed(3)})" d="${FLAME_PATH}" fill="#ffd34d"/>`
+      : `<text x="${mid.toFixed(1)}" y="${cy.toFixed(1)}" text-anchor="middle" dominant-baseline="central" font-size="${(h * 0.56).toFixed(1)}" fill="#fff">${esc(label)}</text>`;
+    return `<svg class="ftag${opts.cls ? ' ' + opts.cls : ''}" width="${W.toFixed(1)}" height="${H}" viewBox="0 0 ${W.toFixed(1)} ${H}" aria-hidden="true">` +
+      `<polygon points="${pts}" fill="${col}" stroke="#2b1b0f" stroke-opacity=".35" stroke-width="${(j + 1.6).toFixed(1)}" stroke-linejoin="round"/>` +
+      `<polygon points="${pts}" fill="${col}" stroke="${col}" stroke-width="${j.toFixed(1)}" stroke-linejoin="round"/>` +
+      body + (opts.count > 1 ? countBubble(W - h * 0.3, h, opts.count) : '') + `</svg>`;
+  }
+  function moreChip(n, cls = 'mini') {
+    const h = TAG_H[cls], W = h * 1.5, H = h + 2;
+    return `<svg class="ftag ${cls}" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true">` +
+      `<rect x="1" y="1" width="${W - 2}" height="${h}" rx="${h * 0.4}" fill="#3b2415" stroke="#f4d886" stroke-width="1"/>` +
+      `<text x="${W / 2}" y="${H / 2}" text-anchor="middle" dominant-baseline="central" font-size="${h * 0.55}" fill="#f4d886">+${n}</text></svg>`;
+  }
+  // Which forges earn a visible tag first: whole-word effects, then multiply, replay, light, tricks, points.
+  const FORGE_RANK = (id) => {
+    const [dir] = GLYPHS[id] || ['self'];
+    const u = UPGRADES[id];
+    return (dir === 'both' ? 0 : 10) + ({ mult: 0, echo: 1, gold: 2, green: 3, pts: 4 }[u.color] ?? 5);
+  };
+  // The shop's letter grid: past three forges, one colour bar by type plus a total.
+  function forgeBarHtml(entries) {
+    const by = new Map();
+    let total = 0;
+    for (const [id, n] of entries) { const c = UPGRADES[id].color; by.set(c, (by.get(c) || 0) + n); total += n; }
+    const order = ['mult', 'echo', 'gold', 'green', 'pts'];
+    const segs = [...by.entries()].sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]));
+    return `<div class="fbar">${segs.map(([c, n]) => `<i style="flex:${n};background:${FORGE_COL[c]}"></i>`).join('')}<b>${total}</b></div>`;
   }
 
   const BURN_CRAFT_COST = 4;
@@ -938,9 +980,15 @@ const TileForge = (() => {
       modCounts.set(m, (modCounts.get(m) || 0) + 1);
     }
     const entries = [...modCounts.entries()];
-    const shownChips = entries.slice(0, 3).map(([mId, cnt]) => glyphHtml(UPGRADES[mId], { count: cnt, cls: 'mini' }));
-    if (entries.length > 3) {
-      shownChips.push(`<span class="glyph g-more mini"><b>+${entries.length - 3}</b></span>`);
+    // Up to 3 forges show as tags. Past that: the shop shows a forge bar; the rack and board show the top two and +N.
+    const ranked = entries.slice().sort((a, b) => FORGE_RANK(a[0]) - FORGE_RANK(b[0]));
+    let chipsHtml = '';
+    if (ranked.length > 3 && opts.bar) {
+      chipsHtml = forgeBarHtml(ranked);
+    } else if (ranked.length) {
+      const keep = ranked.length > 3 ? ranked.slice(0, 2) : ranked;
+      chipsHtml = `<div class="tile-chips">${keep.map(([mId, cnt]) => glyphHtml(UPGRADES[mId], { count: cnt, cls: 'mini' })).join('')}` +
+        `${ranked.length > 3 ? moreChip(ranked.length - 2) : ''}</div>`;
     }
 
     const ltrHtml = opts.fill
@@ -964,7 +1012,7 @@ const TileForge = (() => {
 
     return `
       <div class="${cls.join(' ')}" ${opts.draggable ? 'draggable="true"' : ''} data-tf-tile="${t.uid}" data-tip-title="${esc(t.lead ? 'Lead Slug' : t.wild ? 'Wild Tile' : 'Tile ' + t.letter)}" data-tip-text="${esc(tipParts.join(' | '))}">
-        ${shownChips.length ? `<div class="tile-chips">${shownChips.join('')}</div>` : ''}
+        ${chipsHtml}
         ${isWildVisual ? `<span class="tile-wild-tag">?</span>` : ''}
         ${opts.stackCount > 1 ? `<span class="tile-qty">×${opts.stackCount}</span>` : ''}
         <div class="face">${ltrHtml}<span class="val">${fmtC(t.val)}</span></div>
@@ -1649,7 +1697,7 @@ const TileForge = (() => {
     const wbTilesHtml = shownStacks.length
       ? shownStacks.map(st => {
           const ok = anyTargeting ? canTargetStack(st) : false;
-          return tileHtml(st.tile, { pickable: ok, unpickable: anyTargeting && !ok, stackCount: st.count, cleanNote: st.cleanNote });
+          return tileHtml(st.tile, { pickable: ok, unpickable: anyTargeting && !ok, stackCount: st.count, cleanNote: st.cleanNote, bar: true });
         }).join('')
       : '<span style="color:#cbb282;font-style:italic">No letter stacks in this filter yet.</span>';
 

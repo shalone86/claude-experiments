@@ -2825,53 +2825,45 @@ button:disabled {
    CLEAN REDESIGN — glyph forges, simple shop cards, living candlelight
    ===================================================================== */
 
-/* ---- Forge glyphs: value + an arrow toward the tile it hits ---- */
-.glyph {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.18em;
-  padding: 0.22em 0.55em;
-  border-radius: 999px;
+/* ---- Forge tags: a rounded plate whose nose points at the tile it hits ---- */
+.ftag {
+  display: inline-block;
+  vertical-align: middle;
+  overflow: visible;
+  flex: none;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   font-weight: 800;
-  font-size: 14px;
-  line-height: 1;
-  color: #fff;
-  white-space: nowrap;
-  letter-spacing: -0.01em;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-  position: relative;
 }
-.glyph b { font-weight: 800; }
-.glyph sup { font-size: 0.62em; margin-left: 0.1em; opacity: 0.9; align-self: flex-start; }
-.g-pts   { background: linear-gradient(180deg, #2f66c4, #1a428c); }
-.g-mult  { background: linear-gradient(180deg, #cc3c24, #8e2212); }
-.g-echo  { background: linear-gradient(180deg, #8d4ac0, #5c2788); }
-.g-gold  { background: linear-gradient(180deg, #a8730f, #6a4306); color: #fff3c4; }
-.g-green { background: linear-gradient(180deg, #34957a, #1f6a55); }
-.g-more  { background: #3b2415; color: var(--gold-2); }
-.ga {
-  width: 0;
-  height: 0;
-  border-top: 0.34em solid transparent;
-  border-bottom: 0.34em solid transparent;
-  flex: none;
+.ftag text { font-weight: 800; }
+.ftag.mini { filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.45)); }
+.tile-chips { top: -9px; left: -4px; right: auto; gap: 0; display: flex; align-items: center; max-width: calc(100% + 6px); }
+.tile-chips .ftag + .ftag { margin-left: -1px; }
+.fbar {
+  position: absolute;
+  top: -5px;
+  left: 3px;
+  right: 3px;
+  height: 8px;
+  display: flex;
+  gap: 2px;
+  z-index: 4;
+  pointer-events: none;
 }
-.ga-l { border-right: 0.46em solid currentColor; }
-.ga-r { border-left: 0.46em solid currentColor; }
-.g-flame { width: 0.78em; height: 1.04em; fill: #ffd34d; filter: drop-shadow(0 0 2px rgba(255, 190, 60, 0.9)); }
-.glyph.big { font-size: 25px; padding: 0.3em 0.62em; }
-.glyph.inline { font-size: 14px; vertical-align: middle; }
-.glyph.mini {
-  font-size: 9.5px;
-  padding: 0.18em 0.4em;
-  border-width: 1px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+.fbar i { border-radius: 3px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); min-width: 4px; }
+.fbar b {
+  position: absolute;
+  right: -9px;
+  top: -5px;
+  width: 17px;
+  height: 17px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #2b1b0f;
+  border: 1px solid var(--gold-2);
+  color: var(--gold-2);
+  font: 800 9.5px system-ui, sans-serif;
 }
-.tile-chips { top: -8px; left: -4px; right: auto; gap: 1px; }
-.tile .tile-chips .glyph.mini + .glyph.mini { margin-left: -2px; }
 
 /* ---- Shop cards: glyph + price, the tooltip explains ---- */
 .shop-cards { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 10px; }
@@ -2937,8 +2929,8 @@ button:disabled {
   font-size: 15px;
   animation: guideIn 0.25s ease-out;
 }
-.shop-guide > .glyph { flex: none; }
-.shop-guide > span:not(.glyph) { flex: 1; }
+.shop-guide > .ftag { flex: none; }
+.shop-guide > span { flex: 1; }
 @keyframes guideIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 .shop-title { font-size: 24px; }
 .wb-title small { font-family: system-ui, sans-serif; font-weight: 600; font-size: 12px; opacity: 0.6; margin-left: 6px; letter-spacing: 0; }
@@ -3149,7 +3141,7 @@ button:disabled {
 }
 @media (max-width: 600px) {
   #app.phase-shop .scard { min-height: 74px; padding: 12px 4px 7px; gap: 5px; }
-  #app.phase-shop .scard .glyph.big { font-size: 19px; }
+  #app.phase-shop .scard .ftag.big { width: auto; height: 26px; }
   #app.phase-shop .scard-price { font-size: 13px; }
   .shop-guide { font-size: 13px; padding: 6px 8px; }
 }
