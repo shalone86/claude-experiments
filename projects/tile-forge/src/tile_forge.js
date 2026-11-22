@@ -244,7 +244,8 @@ const TileForge = (() => {
   const getBurnCost = () => BURN_CRAFT_COST + getStake().shopPriceAdd;
   const getCloneCost = () => CLONE_CRAFT_COST + getStake().shopPriceAdd;
   const getFuseCost = () => FUSE_CRAFT_COST + getStake().shopPriceAdd;
-  const getRerollCost = () => REROLL_COST + getStake().shopPriceAdd;
+  // Each reroll in a shop costs $1 more than the last; a new shop starts back at the base price.
+  const getRerollCost = () => REROLL_COST + getStake().shopPriceAdd + (S ? S.rerollsThisShop || 0 : 0);
   function markStakeCleared(stakeId) {
     if (!STAKE_MAP[stakeId]) return;
     clearedStakes.add(stakeId);
@@ -739,7 +740,8 @@ const TileForge = (() => {
     return 'legendary';
   }
 
-  function genShop() {
+  function genShop(isReroll = false) {
+    if (!isReroll) S.rerollsThisShop = 0;
     S.shopNum++;
     S.shopSel = null;
     S.shopMode = null;
@@ -1134,7 +1136,10 @@ const TileForge = (() => {
     if (handIdx >= 0) {
       const filled = S.line.map((t, i) => (t ? i : -1)).filter(i => i >= 0);
       let slot = -1;
-      if (!filled.length) slot = 0;
+      // a hole inside the word (you took a letter out of the middle) gets filled first
+      const gap = filled.length ? S.line.findIndex((t, i) => !t && i > filled[0] && i < filled[filled.length - 1]) : -1;
+      if (gap >= 0) slot = gap;
+      else if (!filled.length) slot = 0;
       else {
         const last = filled[filled.length - 1];
         if (last < 4 && !S.line[last + 1]) slot = last + 1;
@@ -1231,8 +1236,8 @@ const TileForge = (() => {
       if (appEl) appEl.classList.add('scale-broken');
       const scoreEl = document.getElementById('tf-word-score');
       if (scoreEl) scoreEl.textContent = '∞';
-      SFX.bell();
-      await sleep(600);
+      MUSIC.setScene('end');
+      const reveal = await glitchToWhite();
       S.busy = false;
       S.calcOverride = null;
       S.line = [null, null, null, null, null];
@@ -1242,11 +1247,11 @@ const TileForge = (() => {
         stageLabel: spec.label,
         wordsPlayed: S.wordsPlayed,
         summary: 'Your stacked forges shattered the scoring engine — only a fresh run can mend the ledger.',
-        onRestart: () => {
-          initState();
-          render();
-        }
+        onRestart: () => goHome()
       });
+      render();
+      MUSIC.stinger('D');
+      reveal();
       return;
     }
 
@@ -1856,7 +1861,7 @@ const TileForge = (() => {
         </div>
 
         <div class="actions shop-actions">
-          <button class="btn wood reroll-btn" data-act="reroll" ${S.gold < rerollCost ? 'disabled' : ''}>Reroll <span class="cost"><i class="coin" aria-hidden="true">$</i>${rerollCost}</span></button>
+          <button class="btn wood reroll-btn" data-act="reroll" ${S.gold < rerollCost ? 'disabled' : ''} data-tip-title="Reroll" data-tip-text="New upgrades for this shop. Each reroll costs $1 more; the price resets at the next shop.">Reroll <span class="cost"><i class="coin" aria-hidden="true">$</i>${rerollCost}</span></button>
           <button class="btn ${nextSpec.isAudit ? 'cinnabar' : 'verd'} grow" data-act="nextStage">${nextSpec.isAudit ? 'Face the Audit' : 'Next Vigil'} ›</button>
         </div>
       </div>
@@ -2141,7 +2146,8 @@ const TileForge = (() => {
         if (S.gold < cost) return;
         S.gold -= cost;
         S.shopNum--;
-        genShop();
+        S.rerollsThisShop = (S.rerollsThisShop || 0) + 1;
+        genShop(true);
         SFX.whoosh();
         render();
         return;

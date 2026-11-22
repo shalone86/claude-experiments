@@ -152,3 +152,50 @@ document.addEventListener('click', e => {
   if (typeof SFX !== 'undefined') SFX.pick();
 }, true);
 window.addEventListener('resize', () => { if (coachCur) { const id = coachCur; coachCur = null; document.dispatchEvent(new CustomEvent('tf-coach-refresh', { detail: id })); } });
+
+// ---- Grace beyond counting: the screen shakes and tears open, light pours through the cracks,
+// smoke rises, everything burns white, then the white glows down onto the Beatitude screen. ----
+function glitchToWhite(duration = 2800) {
+  return new Promise(resolve => {
+    const app = document.getElementById('app');
+    const layer = document.createElement('div'); layer.id = 'glitch-layer'; document.body.appendChild(layer);
+    const white = document.createElement('div'); white.id = 'whiteout'; document.body.appendChild(white);
+    app.classList.add('glitching');
+    const t0 = performance.now(), W = window.innerWidth, H = window.innerHeight;
+    const timer = setInterval(() => {
+      const k = Math.min(1, (performance.now() - t0) / duration); // intensity builds from 0 to 1
+      app.style.setProperty('--gk', k.toFixed(2));
+      // torn slices of light
+      const n = 1 + Math.round(k * 3);
+      for (let i = 0; i < n; i++) {
+        const sl = document.createElement('div'); sl.className = 'g-slice';
+        sl.style.top = (Math.random() * 100).toFixed(1) + '%';
+        sl.style.height = (0.6 + Math.random() * (2.5 + k * 9)).toFixed(1) + '%';
+        sl.style.setProperty('--dx', ((Math.random() - 0.5) * 70 * (0.4 + k)).toFixed(0) + 'px');
+        layer.appendChild(sl); setTimeout(() => sl.remove(), 80 + Math.random() * 170);
+      }
+      // a beam through a crack
+      if (Math.random() < 0.3 + k * 0.55) {
+        const r = document.createElement('div'); r.className = 'g-ray';
+        r.style.left = (Math.random() * 100).toFixed(1) + '%';
+        r.style.setProperty('--rot', ((Math.random() - 0.5) * 50).toFixed(0) + 'deg');
+        layer.appendChild(r); setTimeout(() => r.remove(), 650);
+      }
+      if (Math.random() < 0.55) smoke(Math.random() * W, H - 10, 1, 40);
+      if (Math.random() < 0.3 + k * 0.4) embers(Math.random() * W, H * (0.4 + Math.random() * 0.6), 2, 40);
+      SFX.tone(80 + Math.random() * 1600, Math.random() < 0.5 ? 'square' : 'sawtooth', 0.05, 0.012 + k * 0.02, 40 + Math.random() * 400);
+      if (k >= 1) {
+        clearInterval(timer);
+        white.classList.add('on');
+        SFX.tone(220, 'sine', 1.4, 0.06, 1760);
+        setTimeout(() => {
+          app.classList.remove('glitching');
+          app.style.removeProperty('--gk');
+          layer.remove();
+          // the caller puts the Beatitude in place, then calls this to let the white glow down
+          resolve(() => { white.classList.add('fade'); setTimeout(() => white.remove(), 2600); });
+        }, 700);
+      }
+    }, 70);
+  });
+}
