@@ -2583,4 +2583,240 @@ button:disabled {
     min-height: 40px;
     font-size: 13.5px;
   }
+
+  /* Portrait Mobile Shop One-Screen Fit (100dvh, 3x2 Cards + 8-col Workbench) */
+  #app.phase-shop {
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
+  #app.phase-shop #ws-nav {
+    padding: 4px 8px;
+    min-height: 34px;
+    gap: 4px;
+    flex-wrap: nowrap;
+  }
+  #app.phase-shop .nav-brand {
+    font-size: 15px;
+    gap: 5px;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  #app.phase-shop .stake-pill {
+    font-size: 9px;
+    padding: 2px 6px;
+    white-space: nowrap;
+  }
+  #app.phase-shop .nav-tools {
+    flex-wrap: nowrap;
+    gap: 4px;
+  }
+  #app.phase-shop .nav-tools .btn.mini {
+    min-height: 24px;
+    padding: 0 6px;
+    font-size: 9.5px;
+    white-space: nowrap;
+  }
+  #app.phase-shop .hud {
+    display: none;
+  }
+  #app.phase-shop #ws-main {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    padding: 4px 6px 6px;
+    gap: 4px;
+  }
+  #app.phase-shop .shop-wrap {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    gap: 5px;
+    padding-bottom: 0;
+  }
+  #app.phase-shop .shop-head {
+    padding: 5px 8px;
+    gap: 6px;
+    flex-wrap: nowrap;
+    flex: none;
+  }
+  #app.phase-shop .shop-title {
+    font-size: 17px;
+  }
+  #app.phase-shop .shop-sub {
+    font-size: 11px;
+    line-height: 1.15;
+  }
+  #app.phase-shop .shop-head .btn.mini {
+    min-height: 26px;
+    padding: 0 7px;
+    font-size: 9.5px;
+    white-space: nowrap;
+  }
+  #app.phase-shop .audit-banner {
+    padding: 4px 8px;
+    font-size: 11px;
+    line-height: 1.15;
+    flex: none;
+  }
+  #app.phase-shop .audit-banner b {
+    font-size: 10px;
+  }
+  #app.phase-shop .info-strip {
+    min-height: 0;
+    padding: 4px 8px;
+    font-size: 11px;
+    line-height: 1.15;
+    flex: none;
+  }
+  #app.phase-shop .info-strip > div {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+  #app.phase-shop .shop-body {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    gap: 5px;
+  }
+  #app.phase-shop .shop-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px;
+    flex: none;
+  }
+  #app.phase-shop .scard {
+    padding: 5px 6px;
+    gap: 3px;
+    border-radius: 8px;
+    border-width: 1.5px;
+    border-top-width: 3px;
+    box-shadow: 0 2px 0 #5b4324, 0 4px 8px rgba(0, 0, 0, 0.35);
+  }
+  #app.phase-shop .scard-cat {
+    display: none;
+  }
+  #app.phase-shop .scard-head-row {
+    justify-content: flex-end;
+  }
+  #app.phase-shop .rar-pill {
+    font-size: 7.5px;
+    padding: 1px 4px;
+  }
+  #app.phase-shop .scard-top {
+    gap: 3px;
+  }
+  #app.phase-shop .scard-ico {
+    font-size: 13px;
+  }
+  #app.phase-shop .scard-name {
+    font-size: 10px;
+    line-height: 1.08;
+  }
+  #app.phase-shop .scard-desc {
+    font-size: 10.5px;
+    line-height: 1.12;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  #app.phase-shop .scard-foot {
+    margin-top: auto;
+    font-size: 12px;
+    gap: 3px;
+  }
+  #app.phase-shop .scard-foot .btn.mini {
+    min-height: 22px;
+    padding: 0 7px;
+    font-size: 9.5px;
+  }
+  #app.phase-shop .workbench {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    padding: 6px 7px;
+    gap: 5px;
+    border-radius: 10px;
+  }
+  #app.phase-shop .wb-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    flex: none;
+  }
+  #app.phase-shop .wb-head > div:first-child {
+    min-width: 0;
+  }
+  #app.phase-shop .wb-title {
+    font-size: 10.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #app.phase-shop .wb-filters {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 4px;
+    margin-top: 3px !important;
+    scrollbar-width: none;
+  }
+  #app.phase-shop .wb-filter {
+    font-size: 9px;
+    padding: 2px 7px;
+    white-space: nowrap;
+    flex: none;
+  }
+  #app.phase-shop .wb-crafts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+  }
+  #app.phase-shop .wb-crafts .btn.mini {
+    min-height: 26px;
+    padding: 0 4px;
+    font-size: 9.5px;
+    white-space: nowrap;
+  }
+  #app.phase-shop .wb-tiles {
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: 7px 4px;
+    padding-top: 6px;
+    align-content: start;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  #app.phase-shop .wb-tiles .tile {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 42 / 50;
+  }
+  #app.phase-shop .wb-tiles .tile .ltr {
+    font-size: 19px;
+    margin-top: -2px;
+  }
+  #app.phase-shop .wb-tiles .tile.len2 .ltr {
+    font-size: 14.5px;
+  }
+  #app.phase-shop .wb-tiles .tile.len3 .ltr {
+    font-size: 11px;
+  }
+  #app.phase-shop .wb-tiles .tile .val {
+    font-size: 8.5px;
+    right: 3px;
+    bottom: 1px;
+  }
+  #app.phase-shop .wb-tiles .tile-qty {
+    font-size: 7.5px;
+    padding: 1px 3px;
+    left: 2px;
+    bottom: 1px;
+  }
+  #app.phase-shop .wb-tiles .tchip {
+    font-size: 7px;
+    padding: 1px 3px;
+  }
 }
