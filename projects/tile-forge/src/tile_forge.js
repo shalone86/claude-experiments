@@ -101,9 +101,9 @@ const TileForge = (() => {
     light_right: 'Brings a flame to the slot on its right (×3 there). Stacks.',
     light_all: 'Lights every slot on the line one step brighter. Stacks.',
     forge_combo: 'Turns one copy into a letter pair like TH, ING or QU. It keeps its forges.',
-    clone_self: 'Each time it’s played, a plain copy of this letter joins your bag.',
-    clone_left: 'Each time it’s played, a plain copy of the letter on its left joins your bag.',
-    clone_right: 'Each time it’s played, a plain copy of the letter on its right joins your bag.',
+    clone_self: 'Each time it’s played, a copy of this letter joins your bag. The copy keeps its points but not its forges.',
+    clone_left: 'Each time it’s played, a copy of the letter on its left joins your bag. The copy keeps its points but not its forges.',
+    clone_right: 'Each time it’s played, a copy of the letter on its right joins your bag. The copy keeps its points but not its forges.',
     wild_self: 'Turns one copy into a Wild ? that can be any letter. Up to 2 per run.',
     wild_left: 'The letter on its left becomes Wild while they sit together. Plain letters only.',
     wild_right: 'The letter on its right becomes Wild while they sit together. Plain letters only.',
@@ -167,7 +167,9 @@ const TileForge = (() => {
 
   const BURN_CRAFT_COST = 4;
   const MIN_BAG_SIZE = 10;
-  const CLONE_CRAFT_COST = 9;
+  const CLONE_CRAFT_COST = 11;
+  // The paid Clone copies a tile's forges, except the clone forges themselves (those would copy forever).
+  const CLONE_FORGES = new Set(['clone_self', 'clone_left', 'clone_right']);
   const FUSE_CRAFT_COST = 7;
   const REROLL_COST = 3;
   const MAX_WILD_TILES = 2;
@@ -877,15 +879,16 @@ const TileForge = (() => {
       if (tile.wild) { SFX.buzz(); showToast('Wild ? tiles cannot be cloned!'); return; }
       S.gold -= cloneCost;
       S.shopMode = null;
+      const kept = tile.mods.filter(m => !CLONE_FORGES.has(m));
       S.bag.push({
         uid: nextUid(),
         letter: tile.letter,
         val: tile.val,
         wild: false,
-        mods: []
+        mods: kept
       });
       SFX.win();
-      showToast(`Cloned 1 clean copy of ${tile.letter} (no upgrades)! (Bag: ${S.bag.length})`);
+      showToast(`Copied ${tile.letter}${kept.length ? ' with its forges' : ''} (bag: ${S.bag.length})`);
       render();
       return;
     }
@@ -1724,7 +1727,7 @@ const TileForge = (() => {
     } else if (S.shopMode === 'burn') {
       guideMsg = `<span>🔥 Tap a letter to burn one copy out of your bag.</span>`;
     } else if (S.shopMode === 'clone') {
-      guideMsg = `<span>⧉ Tap a letter to add a plain copy of it to your bag.</span>`;
+      guideMsg = `<span>⧉ Tap a letter to add a copy of it, forges and all, to your bag.</span>`;
     } else if (S.shopMode === 'fuse') {
       const fTile = S.fuseFirstUid ? S.bag.find(t => t.uid === S.fuseFirstUid) : null;
       guideMsg = fTile
@@ -1766,7 +1769,7 @@ const TileForge = (() => {
               </div>
               <div class="wb-crafts">
                 <button class="craft ${S.shopMode === 'burn' ? 'on' : ''}" data-act="startBurn" ${S.gold < burnCost || S.bag.length <= MIN_BAG_SIZE ? 'disabled' : ''} data-tip-title="Burn" data-tip-text="Remove one copy of a letter from your bag, so your good letters come up more often. Your bag keeps at least ${MIN_BAG_SIZE} tiles.">🔥 <i class="coin" aria-hidden="true">$</i><b>${burnCost}</b></button>
-                <button class="craft ${S.shopMode === 'clone' ? 'on' : ''}" data-act="startClone" ${S.gold < cloneCost ? 'disabled' : ''} data-tip-title="Clone" data-tip-text="Add a plain copy of a letter to your bag (without its forges).">⧉ <i class="coin" aria-hidden="true">$</i><b>${cloneCost}</b></button>
+                <button class="craft ${S.shopMode === 'clone' ? 'on' : ''}" data-act="startClone" ${S.gold < cloneCost ? 'disabled' : ''} data-tip-title="Clone" data-tip-text="Add a copy of a letter to your bag, forges and all (except clone forges).">⧉ <i class="coin" aria-hidden="true">$</i><b>${cloneCost}</b></button>
                 <button class="craft ${S.shopMode === 'fuse' ? 'on' : ''}" data-act="startFuse" ${noFuse || S.gold < fuseCost ? 'disabled' : ''} data-tip-title="Fuse" data-tip-text="${noFuse ? 'Locked on this Stake.' : 'Join two letters into one tile (like T + H = TH). Points and forges add together.'}">🔗 ${noFuse ? '<b>🔒</b>' : `<i class="coin" aria-hidden="true">$</i><b>${fuseCost}</b>`}</button>
               </div>
             </div>
