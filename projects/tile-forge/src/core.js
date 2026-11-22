@@ -134,13 +134,13 @@ const LENGTH_BONUS = { 1: 0, 2: 0, 3: 30, 4: 80, 5: 150 };
 
 const TERRACES_MAX = 7;
 const TERRACE_GOALS = [
-  [220,    450,    650],       // Terrace 1
-  [800,    1100,   1500],      // Terrace 2
-  [1900,   2600,   3500],      // Terrace 3
-  [4200,   5800,   7800],      // Terrace 4
-  [10500,  15000,  21000],     // Terrace 5
-  [28000,  42000,  60000],     // Terrace 6
-  [85000,  125000, 175000]     // Terrace 7 (Final Boss)
+  [110,   230,   330],       // Terrace 1
+  [400,   550,   750],       // Terrace 2
+  [950,   1300,  1750],      // Terrace 3
+  [2100,  2900,  3900],      // Terrace 4
+  [5200,  7500,  10500],     // Terrace 5
+  [14000, 21000, 30000],     // Terrace 6
+  [42500, 62500, 87500]      // Terrace 7 (Final Boss)
 ];
 const TERRACE_REWARDS = [
   [10, 12, 16],
@@ -241,7 +241,7 @@ function getRunStageSpec(terrace, stageInTerrace, auditSpec = null, goalScale = 
     reward = TERRACE_REWARDS[terrace][stageInTerrace];
   } else {
     const e = terrace - TERRACES_MAX;
-    const baseStages = [350e3, 1e6, 3e6];
+    const baseStages = [175e3, 500e3, 1.5e6];
     baseGoal = Math.min(1e200, baseStages[stageInTerrace] * Math.pow(10, e * 1.4 + 0.35 * e * e));
     reward = 24 + stageInTerrace * 4;
   }

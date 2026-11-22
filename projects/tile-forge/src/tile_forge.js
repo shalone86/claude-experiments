@@ -81,7 +81,7 @@ const TileForge = (() => {
   ];
   const STAKE_MAP = Object.fromEntries(STAKES.map(s => [s.id, s]));
 
-  const LS_SCALE_KEY = 'tileforge_goal_scale';
+  const LS_SCALE_KEY = 'tileforge_goal_scale_v2';
   const LS_STAKE_KEY = 'tileforge_stake';
   const LS_WINS_KEY = 'tileforge_wins';
   const SCALE_PRESETS = [10, 25, 50, 75, 100, 150, 200];
@@ -780,7 +780,7 @@ const TileForge = (() => {
         mods: []
       });
       SFX.win();
-      showToast(`Cloned 1 clean copy of ${tile.letter}! (Bag: ${S.bag.length})`);
+      showToast(`Cloned 1 clean copy of ${tile.letter} (no upgrades)! (Bag: ${S.bag.length})`);
       render();
       return;
     }
@@ -804,9 +804,11 @@ const TileForge = (() => {
       let second = tile;
       if (S.fuseFirstUid === uid) {
         if (first && !first.wild && first.letter.length * 2 <= 3) {
-          const sameCopy = S.bag.find(t => t.uid !== first.uid && letterKey(t) === letterKey(first));
-          if (sameCopy) {
-            second = sameCopy;
+          const sameCopies = S.bag
+            .filter(t => t.uid !== first.uid && letterKey(t) === letterKey(first))
+            .sort((a, b) => b.mods.length - a.mods.length || b.val - a.val);
+          if (sameCopies.length) {
+            second = sameCopies[0];
           } else {
             S.fuseFirstUid = null;
             SFX.drop();
@@ -839,7 +841,7 @@ const TileForge = (() => {
       S.shopMode = null;
       S.fuseFirstUid = null;
       SFX.win();
-      showToast(`Fused into ${fused.letter} (${fmtC(fused.val)} pts)!`);
+      showToast(`Fused into ${fused.letter} (${fmtC(fused.val)} pts${fused.mods.length ? ` · ${fused.mods.length} upgrade${fused.mods.length === 1 ? '' : 's'}` : ''})!`);
       render();
     }
   }
@@ -896,6 +898,7 @@ const TileForge = (() => {
       tipParts.push(`${u.name}${cnt > 1 ? ` (×${cnt})` : ''}: ${u.short}`);
     });
     if (opts.neighborWild && !t.wild) tipParts.push('Wild right now (from neighbor Wild upgrade)!');
+    if (opts.cleanNote) tipParts.push('Clean copy (no upgrades — cloned or starter)');
     if (opts.stackCount && opts.stackCount > 1) {
       tipParts.push(`${opts.stackCount} copies in bag — forging upgrades ALL ${opts.stackCount}!`);
     }
@@ -1105,7 +1108,7 @@ const TileForge = (() => {
     S.score += sc.total;
     S.gold += sc.goldGain;
     if (sc.clonedThisWord.length) {
-      showToast(`Cloned into bag: ${sc.clonedThisWord.join(', ')}`);
+      showToast(`Cloned clean (no-upgrade) into bag: ${sc.clonedThisWord.join(', ')}`);
     }
     S.wordsLeft--;
     S.wordsPlayed++;
@@ -1513,13 +1516,14 @@ const TileForge = (() => {
     const groups = new Map();
     for (const t of S.bag) {
       if (t.lead) continue;
-      const k = letterKey(t);
-      if (!groups.has(k)) groups.set(k, []);
-      groups.get(k).push(t);
+      const key = letterKey(t);
+      const gk = key + (t.mods.length > 0 ? ':U' : ':C');
+      if (!groups.has(gk)) groups.set(gk, { key, list: [] });
+      groups.get(gk).list.push(t);
     }
     const stackKeySort = (k) => (k === '?' ? '~~' : k.length === 1 ? '0' + k : '1' + k);
     const sortGroup = (arr) => arr.slice().sort((a, b) => b.mods.length - a.mods.length || b.val - a.val);
-    const allStacks = [...groups.entries()].map(([key, list]) => {
+    const allStacks = [...groups.values()].map(({ key, list }) => {
       const sorted = sortGroup(list);
       const rep = sorted[0];
       return {
@@ -1527,6 +1531,7 @@ const TileForge = (() => {
         list,
         tile: rep,
         count: list.length,
+        cleanNote: rep.mods.length === 0 && S.bag.some(t => !t.lead && letterKey(t) === key && t.mods.length > 0),
         upgraded: list.some(isUpgraded),
         combo: !rep.wild && !rep.lead && rep.letter.length >= 2,
         vowel: !rep.wild && 'AEIOU'.includes(rep.letter),
@@ -1539,9 +1544,10 @@ const TileForge = (() => {
       if (selCard) {
         if (rep.wild) return false;
         if (selCard.item.id === 'wild_self') return countWildsInBag() < MAX_WILD_TILES;
-        if (st.list.some(t => t.mods.includes('wild_left') || t.mods.includes('wild_right'))) return false;
+        const allSame = S.bag.filter(t => !t.lead && letterKey(t) === st.key);
+        if (allSame.some(t => t.mods.includes('wild_left') || t.mods.includes('wild_right'))) return false;
         if (selCard.item.id === 'wild_left' || selCard.item.id === 'wild_right') {
-          return !st.list.some(t => t.mods.length > 0);
+          return !allSame.some(t => t.mods.length > 0);
         }
         return true;
       }
@@ -1560,11 +1566,11 @@ const TileForge = (() => {
       return false;
     };
 
-    const upStacks = allStacks.filter(s => s.upgraded).sort((a, b) => stackKeySort(a.key).localeCompare(stackKeySort(b.key)));
-    const comboStacks = allStacks.filter(s => s.combo).sort((a, b) => stackKeySort(a.key).localeCompare(stackKeySort(b.key)));
-    const vowelStacks = allStacks.filter(s => s.vowel).sort((a, b) => stackKeySort(a.key).localeCompare(stackKeySort(b.key)));
-    const highStacks = allStacks.filter(s => s.high).sort((a, b) => b.tile.val - a.tile.val || stackKeySort(a.key).localeCompare(stackKeySort(b.key)));
-    const allSortedStacks = [...allStacks].sort((a, b) => (b.upgraded - a.upgraded) || stackKeySort(a.key).localeCompare(stackKeySort(b.key)));
+    const upStacks = allStacks.filter(s => s.upgraded).sort((a, b) => stackKeySort(a.key).localeCompare(stackKeySort(b.key)) || b.tile.mods.length - a.tile.mods.length);
+    const comboStacks = allStacks.filter(s => s.combo).sort((a, b) => stackKeySort(a.key).localeCompare(stackKeySort(b.key)) || b.tile.mods.length - a.tile.mods.length);
+    const vowelStacks = allStacks.filter(s => s.vowel).sort((a, b) => stackKeySort(a.key).localeCompare(stackKeySort(b.key)) || b.tile.mods.length - a.tile.mods.length);
+    const highStacks = allStacks.filter(s => s.high).sort((a, b) => b.tile.val - a.tile.val || stackKeySort(a.key).localeCompare(stackKeySort(b.key)) || b.tile.mods.length - a.tile.mods.length);
+    const allSortedStacks = [...allStacks].sort((a, b) => (b.upgraded - a.upgraded) || stackKeySort(a.key).localeCompare(stackKeySort(b.key)) || b.tile.mods.length - a.tile.mods.length);
 
     let shownStacks;
     if (S.wbFilter === 'upgraded') shownStacks = upStacks;
@@ -1584,7 +1590,7 @@ const TileForge = (() => {
     const wbTilesHtml = shownStacks.length
       ? shownStacks.map(st => {
           const ok = anyTargeting ? canTargetStack(st) : false;
-          return tileHtml(st.tile, { pickable: ok, unpickable: anyTargeting && !ok, stackCount: st.count });
+          return tileHtml(st.tile, { pickable: ok, unpickable: anyTargeting && !ok, stackCount: st.count, cleanNote: st.cleanNote });
         }).join('')
       : '<span style="color:#cbb282;font-style:italic">No letter stacks in this filter yet.</span>';
 
