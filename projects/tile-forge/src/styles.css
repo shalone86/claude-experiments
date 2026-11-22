@@ -3157,4 +3157,64 @@ button:disabled {
   #app:not(.phase-shop) .candle-head { height: 52px; gap: 1px; }
 }
 
-.shop-gold { font-family: 'Cinzel', serif; font-weight: 900; color: var(--gold-2); font-size: 1.15em; }
+
+/* ---- Money: always a gold coin ---- */
+.coin {
+  display: inline-grid;
+  place-items: center;
+  width: 1.25em;
+  height: 1.25em;
+  border-radius: 50%;
+  font-style: normal;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-weight: 900;
+  font-size: 0.8em;
+  line-height: 1;
+  color: #6a4306;
+  background: radial-gradient(circle at 35% 30%, #fff6c8, #f4cf5a 45%, #c8901c 80%);
+  border: 1px solid #8a5e10;
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.4);
+  flex: none;
+}
+.coin-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px 5px 6px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #3d2a0e, #24180a);
+  border: 1.5px solid var(--gold);
+  box-shadow: 0 0 12px rgba(244, 216, 134, 0.35), inset 0 1px 0 rgba(255, 230, 150, 0.2);
+  cursor: help;
+}
+.coin-badge .coin { font-size: 22px; }
+.coin-badge b {
+  font-family: 'Cinzel', serif;
+  font-weight: 900;
+  font-size: 24px;
+  color: var(--gold-2);
+  text-shadow: 0 0 10px rgba(244, 216, 134, 0.5);
+}
+.coin-badge.bump { animation: coinBump 0.4s ease-out; }
+@keyframes coinBump { 40% { transform: scale(1.12); } }
+.shop-head { align-items: center; justify-content: space-between; }
+.stat.gold {
+  background: linear-gradient(180deg, #3d2a0e, #24180a) !important;
+  border-color: var(--gold) !important;
+  box-shadow: 0 0 10px rgba(244, 216, 134, 0.3);
+}
+.stat.gold b { color: var(--gold-2) !important; }
+.shop-actions { margin-top: 10px; }
+.shop-actions .reroll-btn { flex: 1; }
+.shop-actions .cost { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; }
+.shop-actions .cost .coin { font-size: 15px; }
+.scard-price { display: inline-flex; align-items: center; gap: 4px; }
+@media (max-width: 600px) {
+  #app.phase-shop .shop-actions { margin-top: 0; flex: none; flex-wrap: nowrap; }
+  #app.phase-shop .shop-actions .btn { min-height: 44px; }
+  .coin-badge { padding: 3px 11px 3px 4px; }
+  .coin-badge .coin { font-size: 18px; }
+  .coin-badge b { font-size: 20px; }
+}
+.scard .coin { font-size: 15px; }
+.craft .coin { font-size: 13px; }

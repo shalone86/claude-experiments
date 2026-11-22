@@ -1664,7 +1664,7 @@ const TileForge = (() => {
           data-act="pickCard" data-arg="${idx}" data-card-idx="${idx}" ${c.sold ? 'disabled' : ''}
           data-tip-title="${esc(tipTitle)}" data-tip-text="${esc(tipFor(u))}${cant && !c.sold ? ` (Need $${c.cost}.)` : ''}">
           ${glyphHtml(u, { cls: 'big' })}
-          <span class="scard-price">${c.sold ? 'Forged' : `$${c.cost}`}</span>
+          <span class="scard-price">${c.sold ? 'Forged' : `<i class="coin" aria-hidden="true">$</i>${c.cost}`}</span>
           <span class="rar-dot ${rm.cls}" aria-hidden="true"></span>
         </button>
       `;
@@ -1696,12 +1696,9 @@ const TileForge = (() => {
         <div class="shop-head">
           <div>
             <div class="shop-title">The Forge</div>
-            <div class="shop-sub"><span class="shop-gold">$${S.gold}</span> · Next goal <b>${fmtC(nextSpec.goal)}</b></div>
+            <div class="shop-sub">Next goal <b>${fmtC(nextSpec.goal)}</b></div>
           </div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
-            <button class="btn gold mini" data-act="reroll" ${S.gold < rerollCost ? 'disabled' : ''}>Reroll $${rerollCost}</button>
-            <button class="btn ${nextSpec.isAudit ? 'cinnabar' : 'verd'} mini" data-act="nextStage">${nextSpec.isAudit ? 'Face the Audit' : 'Next Vigil'} ›</button>
-          </div>
+          <div class="coin-badge" data-tip-title="Gold" data-tip-text="Spend it on forges. Unspent gold carries over to the next shop."><i class="coin" aria-hidden="true">$</i><b>${S.gold}</b></div>
         </div>
 
         ${auditPreviewHtml}
@@ -1720,15 +1717,20 @@ const TileForge = (() => {
                 </div>
               </div>
               <div class="wb-crafts">
-                <button class="craft ${S.shopMode === 'burn' ? 'on' : ''}" data-act="startBurn" ${S.gold < burnCost || S.bag.length <= MIN_BAG_SIZE ? 'disabled' : ''} data-tip-title="Burn" data-tip-text="Remove one copy of a letter from your bag, so your good letters come up more often. Your bag keeps at least ${MIN_BAG_SIZE} tiles.">🔥 <b>$${burnCost}</b></button>
-                <button class="craft ${S.shopMode === 'clone' ? 'on' : ''}" data-act="startClone" ${S.gold < cloneCost ? 'disabled' : ''} data-tip-title="Clone" data-tip-text="Add a plain copy of a letter to your bag (without its forges).">⧉ <b>$${cloneCost}</b></button>
-                <button class="craft ${S.shopMode === 'fuse' ? 'on' : ''}" data-act="startFuse" ${noFuse || S.gold < fuseCost ? 'disabled' : ''} data-tip-title="Fuse" data-tip-text="${noFuse ? 'Locked on this Stake.' : 'Join two letters into one tile (like T + H = TH). Points and forges add together.'}">🔗 <b>${noFuse ? '🔒' : `$${fuseCost}`}</b></button>
+                <button class="craft ${S.shopMode === 'burn' ? 'on' : ''}" data-act="startBurn" ${S.gold < burnCost || S.bag.length <= MIN_BAG_SIZE ? 'disabled' : ''} data-tip-title="Burn" data-tip-text="Remove one copy of a letter from your bag, so your good letters come up more often. Your bag keeps at least ${MIN_BAG_SIZE} tiles.">🔥 <i class="coin" aria-hidden="true">$</i><b>${burnCost}</b></button>
+                <button class="craft ${S.shopMode === 'clone' ? 'on' : ''}" data-act="startClone" ${S.gold < cloneCost ? 'disabled' : ''} data-tip-title="Clone" data-tip-text="Add a plain copy of a letter to your bag (without its forges).">⧉ <i class="coin" aria-hidden="true">$</i><b>${cloneCost}</b></button>
+                <button class="craft ${S.shopMode === 'fuse' ? 'on' : ''}" data-act="startFuse" ${noFuse || S.gold < fuseCost ? 'disabled' : ''} data-tip-title="Fuse" data-tip-text="${noFuse ? 'Locked on this Stake.' : 'Join two letters into one tile (like T + H = TH). Points and forges add together.'}">🔗 ${noFuse ? '<b>🔒</b>' : `<i class="coin" aria-hidden="true">$</i><b>${fuseCost}</b>`}</button>
               </div>
             </div>
             <div class="wb-tiles">
               ${wbTilesHtml}
             </div>
           </div>
+        </div>
+
+        <div class="actions shop-actions">
+          <button class="btn wood reroll-btn" data-act="reroll" ${S.gold < rerollCost ? 'disabled' : ''}>Reroll <span class="cost"><i class="coin" aria-hidden="true">$</i>${rerollCost}</span></button>
+          <button class="btn ${nextSpec.isAudit ? 'cinnabar' : 'verd'} grow" data-act="nextStage">${nextSpec.isAudit ? 'Face the Audit' : 'Next Vigil'} ›</button>
         </div>
       </div>
     `;
