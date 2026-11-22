@@ -640,44 +640,74 @@ function persistDefCache() {
   } catch {}
 }
 
-function lookupWordDef(word, onUpdate) {
+// Base forms to try when a word itself isn't in the dictionary (TOPS -> TOP, WALKED -> WALK).
+function defStems(w) {
+  const out = [];
+  const add = (x) => { if (x.length >= 2 && !out.includes(x) && x !== w) out.push(x); };
+  if (w.endsWith('IES')) add(w.slice(0, -3) + 'Y');
+  if (w.endsWith('ES')) add(w.slice(0, -2));
+  if (w.endsWith('S')) add(w.slice(0, -1));
+  if (w.endsWith('ED')) { add(w.slice(0, -2)); add(w.slice(0, -1)); }
+  if (w.endsWith('ING')) { add(w.slice(0, -3)); add(w.slice(0, -3) + 'E'); }
+  if (w.endsWith('ER')) { add(w.slice(0, -2)); add(w.slice(0, -1)); }
+  if (w.endsWith('EST')) add(w.slice(0, -3));
+  return out;
+}
+
+async function fetchDef(w) {
+  const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(w.toLowerCase())}`);
+  if (res.status === 429 || res.status >= 500) return { retry: true };
+  if (!res.ok) return { def: null };
+  const data = await res.json();
+  const raw = data && data[0] && data[0].meanings && data[0].meanings[0] &&
+              data[0].meanings[0].definitions && data[0].meanings[0].definitions[0] &&
+              data[0].meanings[0].definitions[0].definition;
+  if (!raw) return { def: null };
+  let clean = String(raw).replace(/\s+/g, ' ').trim();
+  if (clean.length > 96) clean = clean.slice(0, 93).replace(/\s+\S*$/, '') + '…';
+  return { def: clean };
+}
+
+let defWanted = '';
+// Looks a word up once it has stayed on the line for a moment (so TO, TOP, TOPS isn't three lookups).
+// A rate-limit or network hiccup is retried instead of being remembered as "no definition".
+function lookupWordDef(word, onUpdate, attempt = 0) {
   const w = String(word || '').toUpperCase().trim();
   if (!w) return '';
   if (DEF_CACHE.has(w)) return DEF_CACHE.get(w);
   if (typeof fetch !== 'function') return null;
-
+  defWanted = w;
   clearTimeout(defLookupTimer);
   defLookupTimer = setTimeout(async () => {
-    if (DEF_CACHE.has(w) || defPending.has(w)) return;
+    if (DEF_CACHE.has(w) || defPending.has(w) || defWanted !== w) return;
     defPending.add(w);
-    let def = 'Valid dictionary word.';
+    let def = null, retry = false;
     try {
-      const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(w.toLowerCase())}`);
-      if (res.ok) {
-        const data = await res.json();
-        const raw = data && data[0] && data[0].meanings && data[0].meanings[0] &&
-                    data[0].meanings[0].definitions && data[0].meanings[0].definitions[0] &&
-                    data[0].meanings[0].definitions[0].definition;
-        if (raw) {
-          let clean = String(raw).replace(/\s+/g, ' ').trim();
-          if (clean.length > 96) clean = clean.slice(0, 93).replace(/\s+\S*$/, '') + '…';
-          def = clean;
-          DEF_CACHE.set(w, def);
-          persistDefCache();
-        } else {
-          DEF_CACHE.set(w, def);
+      const r = await fetchDef(w);
+      if (r.retry) retry = true;
+      else if (r.def) def = r.def;
+      else {
+        for (const stem of defStems(w)) {
+          const r2 = DEF_CACHE.has(stem) && DEF_CACHE.get(stem) !== 'Valid dictionary word.'
+            ? { def: DEF_CACHE.get(stem) } : await fetchDef(stem);
+          if (r2.retry) { retry = true; break; }
+          if (r2.def) { def = `(${stem.toLowerCase()}) ${r2.def}`; break; }
         }
-      } else {
-        DEF_CACHE.set(w, def);
       }
     } catch {
-      DEF_CACHE.set(w, def);
+      retry = true;
     } finally {
       defPending.delete(w);
-      if (typeof onUpdate === 'function') onUpdate(w, def);
     }
-  }, 180);
-
+    if (retry) {
+      if (attempt < 3 && defWanted === w) setTimeout(() => lookupWordDef(w, onUpdate, attempt + 1), 1500 * (attempt + 1));
+      return;
+    }
+    def = def || 'Valid dictionary word.';
+    DEF_CACHE.set(w, def);
+    if (def !== 'Valid dictionary word.') persistDefCache();
+    if (typeof onUpdate === 'function') onUpdate(w, def);
+  }, attempt ? 0 : 450);
   return null;
 }
 

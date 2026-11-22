@@ -34,12 +34,12 @@ const TileForge = (() => {
 
     // Clone, Combo & Wild (Green)
     forge_combo:  { id: 'forge_combo',  cat: 'util',   rarity: 'common',    color: 'green',  icon: '🔤',   name: 'Forge Combo',  short: 'Turns 1 tile into TH/ING/QU… (keeps forges)', chip: 'ABC',    cost: 6,  immediate: true },
-    clone_self:   { id: 'clone_self',   cat: 'util',   rarity: 'rare',      color: 'green',  icon: '🧬',   name: 'Clone Self',   short: 'Adds clean copy of self on play (no mods)',   chip: '📑S',    cost: 11 },
-    clone_left:   { id: 'clone_left',   cat: 'util',   rarity: 'rare',      color: 'green',  icon: '◀︎📑', name: 'Clone Left',   short: 'Adds clean copy of left on play (no mods)',   chip: '◀︎📑',   cost: 11 },
-    clone_right:  { id: 'clone_right',  cat: 'util',   rarity: 'rare',      color: 'green',  icon: '📑▶︎', name: 'Clone Right',  short: 'Adds clean copy of right on play (no mods)',  chip: '📑▶︎',   cost: 11 },
-    wild_self:    { id: 'wild_self',    cat: 'util',   rarity: 'rare',      color: 'green',  icon: '✨',   name: 'Wild Tile',    short: 'Turns 1 tile Wild ? (max 2 in bag; no mods)', chip: '?',      cost: 9,  immediate: true },
-    wild_left:    { id: 'wild_left',    cat: 'util',   rarity: 'rare',      color: 'green',  icon: '◀︎✨', name: 'Wild Left',    short: 'Makes left tile wild (clean tiles only)',     chip: '◀︎?',    cost: 11 },
-    wild_right:   { id: 'wild_right',   cat: 'util',   rarity: 'rare',      color: 'green',  icon: '✨▶︎', name: 'Wild Right',   short: 'Makes right tile wild (clean tiles only)',    chip: '?▶︎',    cost: 11 },
+    clone_self:   { id: 'clone_self',   cat: 'util',   rarity: 'rare',      color: 'green',  icon: '🧬',   name: 'Clone Self',   short: 'Adds a full copy of self on play',   chip: '📑S',    cost: 11 },
+    clone_left:   { id: 'clone_left',   cat: 'util',   rarity: 'rare',      color: 'green',  icon: '◀︎📑', name: 'Clone Left',   short: 'Adds a full copy of left on play',   chip: '◀︎📑',   cost: 11 },
+    clone_right:  { id: 'clone_right',  cat: 'util',   rarity: 'rare',      color: 'green',  icon: '📑▶︎', name: 'Clone Right',  short: 'Adds a full copy of right on play',  chip: '📑▶︎',   cost: 11 },
+    wild_self:    { id: 'wild_self',    cat: 'util',   rarity: 'rare',      color: 'green',  icon: '✨',   name: 'Wild Tile',    short: 'Turns 1 tile Wild ? (max 2 in bag; keeps forges)', chip: '?',      cost: 9,  immediate: true },
+    wild_left:    { id: 'wild_left',    cat: 'util',   rarity: 'rare',      color: 'green',  icon: '◀︎✨', name: 'Wild Left',    short: 'Makes left tile wild (one wild forge per letter)',     chip: '◀︎?',    cost: 11 },
+    wild_right:   { id: 'wild_right',   cat: 'util',   rarity: 'rare',      color: 'green',  icon: '✨▶︎', name: 'Wild Right',   short: 'Makes right tile wild (one wild forge per letter)',    chip: '?▶︎',    cost: 11 },
 
     // Special Picks
     grow_2:       { id: 'grow_2',       cat: 'pts',    rarity: 'rare',      color: 'pts',    icon: '📈',   name: '2× Forever',   short: 'Doubles tile score after play',               chip: '📈',     cost: 10 },
@@ -101,12 +101,12 @@ const TileForge = (() => {
     light_right: 'Brings a flame to the slot on its right (×3 there). Stacks.',
     light_all: 'Lights every slot on the line one step brighter. Stacks.',
     forge_combo: 'Turns one copy into a letter pair like TH, ING or QU. It keeps its forges.',
-    clone_self: 'Each time it’s played, a copy of this letter joins your bag. The copy keeps its points but not its forges.',
-    clone_left: 'Each time it’s played, a copy of the letter on its left joins your bag. The copy keeps its points but not its forges.',
-    clone_right: 'Each time it’s played, a copy of the letter on its right joins your bag. The copy keeps its points but not its forges.',
-    wild_self: 'Turns one copy into a Wild ? that can be any letter. Up to 2 per run.',
-    wild_left: 'The letter on its left becomes Wild while they sit together. Plain letters only.',
-    wild_right: 'The letter on its right becomes Wild while they sit together. Plain letters only.',
+    clone_self: 'Each time it’s played, a full copy of this letter, forges and all, joins your bag.',
+    clone_left: 'Each time it’s played, a full copy of the letter on its left, forges and all, joins your bag.',
+    clone_right: 'Each time it’s played, a full copy of the letter on its right, forges and all, joins your bag.',
+    wild_self: 'Turns one copy into a Wild ? that can be any letter. It keeps its forges. Up to 2 per run.',
+    wild_left: 'The letter on its left can be any letter while they sit together, and keeps its own forges. A letter can carry one wild forge.',
+    wild_right: 'The letter on its right can be any letter while they sit together, and keeps its own forges. A letter can carry one wild forge.',
     grow_2: 'After each play, this letter’s points double, for good.',
     gold_3: '+$3 every time this letter scores.',
     power_word: 'Raises the whole word’s score to the power of 1.25.'
@@ -168,8 +168,6 @@ const TileForge = (() => {
   const BURN_CRAFT_COST = 4;
   const MIN_BAG_SIZE = 10;
   const CLONE_CRAFT_COST = 11;
-  // The paid Clone copies a tile's forges, except the clone forges themselves (those would copy forever).
-  const CLONE_FORGES = new Set(['clone_self', 'clone_left', 'clone_right']);
   const FUSE_CRAFT_COST = 7;
   const REROLL_COST = 3;
   const MAX_WILD_TILES = 2;
@@ -381,14 +379,31 @@ const TileForge = (() => {
     }
   }
 
+  // Which tiles on the line act as wild. A ◀? or ?▶ tile makes its neighbour wild, but a tile
+  // that has itself been made wild loses that power (no chains). In a face-off (◀? next to ?▶
+  // pointing at each other) the left tile wins.
   function wildFlagsForLine(tiles) {
-    return tiles.map((t, j) => {
-      if (t.lead) return false;
-      if (t.wild) return true;
-      if (j + 1 < tiles.length && countMod(tiles[j + 1], 'wild_left') > 0) return true;
-      if (j > 0 && countMod(tiles[j - 1], 'wild_right') > 0) return true;
-      return false;
+    const n = tiles.length;
+    const flags = tiles.map(t => !t.lead && !!t.wild);
+    const target = tiles.map((t, j) => {
+      if (t.lead || t.wild) return -1;
+      if (countMod(t, 'wild_left') > 0 && j > 0) return j - 1;
+      if (countMod(t, 'wild_right') > 0 && j < n - 1) return j + 1;
+      return -1;
     });
+    const state = target.map(x => (x < 0 ? 'none' : null));
+    while (state.includes(null)) {
+      let changed = false;
+      for (let j = 0; j < n; j++) {
+        if (state[j] !== null) continue;
+        const hitters = target.map((x, k) => (x === j ? k : -1)).filter(k => k >= 0);
+        if (hitters.some(k => state[k] === 'on')) { state[j] = 'off'; changed = true; }
+        else if (hitters.every(k => state[k] === 'off')) { state[j] = 'on'; changed = true; }
+      }
+      if (!changed) state[state.indexOf(null)] = 'on';
+    }
+    state.forEach((st, j) => { if (st === 'on' && !tiles[target[j]].lead) flags[target[j]] = true; });
+    return flags;
   }
 
   function auditCheck(v) {
@@ -404,7 +419,7 @@ const TileForge = (() => {
 
   function computeTriggers(tiles) {
     const len = tiles.length;
-    const trig = tiles.map(t => (t.wild ? 1 : Math.min(4096, 1 + countMod(t, 'replay_self'))));
+    const trig = tiles.map(t => Math.min(4096, 1 + countMod(t, 'replay_self')));
 
     const pingPongPairs = new Set();
     for (let j = 0; j < len - 1; j++) {
@@ -433,10 +448,6 @@ const TileForge = (() => {
       if (cR > 0) {
         trig[j + 1] = Math.min(4096, trig[j + 1] * (1 + cR * trig[j]));
       }
-    }
-
-    for (let j = 0; j < len; j++) {
-      if (tiles[j].wild) trig[j] = 1;
     }
 
     return { trig, pingPongPairs };
@@ -590,7 +601,7 @@ const TileForge = (() => {
             letter: src.letter,
             val: src.val,
             wild: false,
-            mods: []
+            mods: src.mods.slice()
           };
           S.bag.push(c);
           clonedThisWord.push(c.letter);
@@ -795,23 +806,18 @@ const TileForge = (() => {
       S.shopMode = null;
       target.wild = true;
       target.letter = '?';
-      target.mods = [];
+      // it keeps its forges, except a wild forge (a wild can't make its neighbour wild)
+      target.mods = target.mods.filter(m => m !== 'wild_left' && m !== 'wild_right');
       SFX.chord();
-      showToast(`1 ${origLabel} tile became a clean Wild ? (${countWildsInBag()}/${MAX_WILD_TILES} Wilds)!`);
+      showToast(`1 ${origLabel} became a Wild ?${target.mods.length ? ', forges kept' : ''} (${countWildsInBag()}/${MAX_WILD_TILES})`);
       render();
       return;
     }
 
-    if (targets.some(t => t.mods.includes('wild_left') || t.mods.includes('wild_right'))) {
-      SFX.buzz();
-      showToast('Tiles with Wild Left/Right cannot stack more upgrades!');
-      return;
-    }
-
     if (up.id === 'wild_left' || up.id === 'wild_right') {
-      if (targets.some(t => t.mods.length > 0)) {
+      if (targets.some(t => t.mods.includes('wild_left') || t.mods.includes('wild_right'))) {
         SFX.buzz();
-        showToast('Wild Left/Right can only be forged onto clean tiles!');
+        showToast('A letter can carry only one wild forge (◀? or ?▶).');
         return;
       }
     }
@@ -879,7 +885,7 @@ const TileForge = (() => {
       if (tile.wild) { SFX.buzz(); showToast('Wild ? tiles cannot be cloned!'); return; }
       S.gold -= cloneCost;
       S.shopMode = null;
-      const kept = tile.mods.filter(m => !CLONE_FORGES.has(m));
+      const kept = tile.mods.slice();
       S.bag.push({
         uid: nextUid(),
         letter: tile.letter,
@@ -1218,7 +1224,7 @@ const TileForge = (() => {
     S.score += sc.total;
     S.gold += sc.goldGain;
     if (sc.clonedThisWord.length) {
-      showToast(`Cloned clean (no-upgrade) into bag: ${sc.clonedThisWord.join(', ')}`);
+      showToast(`Copied into your bag: ${sc.clonedThisWord.join(', ')}`);
     }
     S.wordsLeft--;
     S.wordsPlayed++;
@@ -1655,10 +1661,9 @@ const TileForge = (() => {
       if (selCard) {
         if (rep.wild) return false;
         if (selCard.item.id === 'wild_self') return countWildsInBag() < MAX_WILD_TILES;
-        const allSame = S.bag.filter(t => !t.lead && letterKey(t) === st.key);
-        if (allSame.some(t => t.mods.includes('wild_left') || t.mods.includes('wild_right'))) return false;
         if (selCard.item.id === 'wild_left' || selCard.item.id === 'wild_right') {
-          return !allSame.some(t => t.mods.length > 0);
+          const allSame = S.bag.filter(t => !t.lead && letterKey(t) === st.key);
+          return !allSame.some(t => t.mods.includes('wild_left') || t.mods.includes('wild_right'));
         }
         return true;
       }
@@ -1769,7 +1774,7 @@ const TileForge = (() => {
               </div>
               <div class="wb-crafts">
                 <button class="craft ${S.shopMode === 'burn' ? 'on' : ''}" data-act="startBurn" ${S.gold < burnCost || S.bag.length <= MIN_BAG_SIZE ? 'disabled' : ''} data-tip-title="Burn" data-tip-text="Remove one copy of a letter from your bag, so your good letters come up more often. Your bag keeps at least ${MIN_BAG_SIZE} tiles.">🔥 <i class="coin" aria-hidden="true">$</i><b>${burnCost}</b></button>
-                <button class="craft ${S.shopMode === 'clone' ? 'on' : ''}" data-act="startClone" ${S.gold < cloneCost ? 'disabled' : ''} data-tip-title="Clone" data-tip-text="Add a copy of a letter to your bag, forges and all (except clone forges).">⧉ <i class="coin" aria-hidden="true">$</i><b>${cloneCost}</b></button>
+                <button class="craft ${S.shopMode === 'clone' ? 'on' : ''}" data-act="startClone" ${S.gold < cloneCost ? 'disabled' : ''} data-tip-title="Clone" data-tip-text="Add a copy of a letter to your bag, forges and all.">⧉ <i class="coin" aria-hidden="true">$</i><b>${cloneCost}</b></button>
                 <button class="craft ${S.shopMode === 'fuse' ? 'on' : ''}" data-act="startFuse" ${noFuse || S.gold < fuseCost ? 'disabled' : ''} data-tip-title="Fuse" data-tip-text="${noFuse ? 'Locked on this Stake.' : 'Join two letters into one tile (like T + H = TH). Points and forges add together.'}">🔗 ${noFuse ? '<b>🔒</b>' : `<i class="coin" aria-hidden="true">$</i><b>${fuseCost}</b>`}</button>
               </div>
             </div>
