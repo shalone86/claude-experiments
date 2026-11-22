@@ -1,0 +1,4 @@
+# build outputs (rebuild with python3 build.py)
+index.html
+tile-forge.html
+.DS_Store

@@ -1,0 +1,2154 @@
+/* =====================================================================
+   TILE FORGE — Single-Score Word Roguelike (7 Terraces × 3 Stages + Audits)
+   ===================================================================== */
+const TileForge = (() => {
+  const UPGRADES = {
+    // +Points (Blue)
+    add_self_20:  { id: 'add_self_20',  cat: 'pts',    rarity: 'common',    color: 'pts',    icon: '🔵',   name: '+20 Tile',     short: '+20 score forever',                           chip: '+20',    cost: 4,  immediate: true },
+    add_self_40:  { id: 'add_self_40',  cat: 'pts',    rarity: 'common',    color: 'pts',    icon: '🔷',   name: '+40 Tile',     short: '+40 score forever',                           chip: '+40',    cost: 6,  immediate: true },
+    add_left_30:  { id: 'add_left_30',  cat: 'pts',    rarity: 'common',    color: 'pts',    icon: '◀︎🔵', name: '+30 Left',     short: '+30 to left tile',                            chip: '◀︎+30',   cost: 5 },
+    add_right_30: { id: 'add_right_30', cat: 'pts',    rarity: 'common',    color: 'pts',    icon: '🔵▶︎', name: '+30 Right',    short: '+30 to right tile',                           chip: '+30▶︎',   cost: 5 },
+
+    // Multiply (Red)
+    mult_self_2:  { id: 'mult_self_2',  cat: 'mult',   rarity: 'common',    color: 'mult',   icon: '💎',   name: '2× Tile',      short: '2× this tile',                                chip: '2×',     cost: 6 },
+    mult_self_3:  { id: 'mult_self_3',  cat: 'mult',   rarity: 'uncommon',  color: 'mult',   icon: '♦️',   name: '3× Tile',      short: '3× this tile',                                chip: '3×',     cost: 8 },
+    mult_left_2:  { id: 'mult_left_2',  cat: 'mult',   rarity: 'common',    color: 'mult',   icon: '◀︎💎', name: '2× Left',      short: '2× left tile',                                chip: '◀︎2×',    cost: 6 },
+    mult_left_3:  { id: 'mult_left_3',  cat: 'mult',   rarity: 'uncommon',  color: 'mult',   icon: '◀︎🔴', name: '3× Left',      short: '3× left tile',                                chip: '◀︎3×',    cost: 8 },
+    mult_left_4:  { id: 'mult_left_4',  cat: 'mult',   rarity: 'rare',      color: 'mult',   icon: '◀︎🔥', name: '4× Left',      short: '4× left tile!',                               chip: '◀︎4×',    cost: 11 },
+    mult_right_2: { id: 'mult_right_2', cat: 'mult',   rarity: 'common',    color: 'mult',   icon: '💎▶︎', name: '2× Right',     short: '2× right tile',                               chip: '2×▶︎',    cost: 6 },
+    mult_right_3: { id: 'mult_right_3', cat: 'mult',   rarity: 'uncommon',  color: 'mult',   icon: '🔴▶︎', name: '3× Right',     short: '3× right tile',                               chip: '3×▶︎',    cost: 8 },
+    mult_right_4: { id: 'mult_right_4', cat: 'mult',   rarity: 'rare',      color: 'mult',   icon: '🔥▶︎', name: '4× Right',     short: '4× right tile!',                              chip: '4×▶︎',    cost: 11 },
+    mult_word_2:  { id: 'mult_word_2',  cat: 'mult',   rarity: 'uncommon',  color: 'mult',   icon: '👑',   name: '2× Word',      short: '2× whole word!',                              chip: '2×W',    cost: 8 },
+    mult_word_3:  { id: 'mult_word_3',  cat: 'mult',   rarity: 'rare',      color: 'mult',   icon: '🌟',   name: '3× Word',      short: '3× whole word!',                              chip: '3×W',    cost: 12 },
+
+    // Replay (Purple)
+    replay_self:  { id: 'replay_self',  cat: 'replay', rarity: 'uncommon',  color: 'echo',   icon: '🔁',   name: 'Replay Self',  short: 'Triggers +1 extra time',                      chip: '↻',      cost: 7 },
+    replay_left:  { id: 'replay_left',  cat: 'replay', rarity: 'rare',      color: 'echo',   icon: '◀︎🔁', name: 'Replay Left',  short: 'Retriggers left tile',                        chip: '◀︎↻',    cost: 9 },
+    replay_right: { id: 'replay_right', cat: 'replay', rarity: 'rare',      color: 'echo',   icon: '🔁▶︎', name: 'Replay Right', short: 'Retriggers right tile',                       chip: '↻▶︎',    cost: 9 },
+
+    // Light (Gold)
+    light_self:   { id: 'light_self',   cat: 'light',  rarity: 'common',    color: 'gold',   icon: '🕯️',   name: 'Light Self',   short: 'Bright ×3 (stacks)',                          chip: '🕯️',     cost: 4 },
+    light_left:   { id: 'light_left',   cat: 'light',  rarity: 'common',    color: 'gold',   icon: '◀︎🕯️', name: 'Light Left',   short: 'Lights left (stacks)',                        chip: '◀︎🕯️',   cost: 5 },
+    light_right:  { id: 'light_right',  cat: 'light',  rarity: 'common',    color: 'gold',   icon: '🕯️▶︎', name: 'Light Right',  short: 'Lights right (stacks)',                       chip: '🕯️▶︎',   cost: 5 },
+    light_all:    { id: 'light_all',    cat: 'light',  rarity: 'uncommon',  color: 'gold',   icon: '☀️',   name: 'Light All',    short: 'Lights all 5 (stacks)',                       chip: '🕯️ALL',  cost: 8 },
+
+    // Clone, Combo & Wild (Green)
+    forge_combo:  { id: 'forge_combo',  cat: 'util',   rarity: 'common',    color: 'green',  icon: '🔤',   name: 'Forge Combo',  short: 'Turns 1 tile into TH/ING/QU… (keeps forges)', chip: 'ABC',    cost: 6,  immediate: true },
+    clone_self:   { id: 'clone_self',   cat: 'util',   rarity: 'rare',      color: 'green',  icon: '🧬',   name: 'Clone Self',   short: 'Adds clean copy of self on play (no mods)',   chip: '📑S',    cost: 11 },
+    clone_left:   { id: 'clone_left',   cat: 'util',   rarity: 'rare',      color: 'green',  icon: '◀︎📑', name: 'Clone Left',   short: 'Adds clean copy of left on play (no mods)',   chip: '◀︎📑',   cost: 11 },
+    clone_right:  { id: 'clone_right',  cat: 'util',   rarity: 'rare',      color: 'green',  icon: '📑▶︎', name: 'Clone Right',  short: 'Adds clean copy of right on play (no mods)',  chip: '📑▶︎',   cost: 11 },
+    wild_self:    { id: 'wild_self',    cat: 'util',   rarity: 'rare',      color: 'green',  icon: '✨',   name: 'Wild Tile',    short: 'Turns 1 tile Wild ? (max 2 in bag; no mods)', chip: '?',      cost: 9,  immediate: true },
+    wild_left:    { id: 'wild_left',    cat: 'util',   rarity: 'rare',      color: 'green',  icon: '◀︎✨', name: 'Wild Left',    short: 'Makes left tile wild (clean tiles only)',     chip: '◀︎?',    cost: 11 },
+    wild_right:   { id: 'wild_right',   cat: 'util',   rarity: 'rare',      color: 'green',  icon: '✨▶︎', name: 'Wild Right',   short: 'Makes right tile wild (clean tiles only)',    chip: '?▶︎',    cost: 11 },
+
+    // Special Picks
+    grow_2:       { id: 'grow_2',       cat: 'pts',    rarity: 'rare',      color: 'pts',    icon: '📈',   name: '2× Forever',   short: 'Doubles tile score after play',               chip: '📈',     cost: 10 },
+    gold_3:       { id: 'gold_3',       cat: 'light',  rarity: 'common',    color: 'gold',   icon: '🪙',   name: '+$3 Gold',     short: '+$3 every trigger',                           chip: '+$3',    cost: 6 },
+    power_word:   { id: 'power_word',   cat: 'replay', rarity: 'legendary', color: 'echo',   icon: '⚡',   name: 'Word ^1.25',   short: 'Raises word score ^1.25!',                    chip: '^1.25',  cost: 15 }
+  };
+
+  const RARITY_META = {
+    common:    { label: 'COMMON',    cls: 'rar-common' },
+    uncommon:  { label: 'UNCOMMON',  cls: 'rar-uncommon' },
+    rare:      { label: 'RARE',      cls: 'rar-rare' },
+    legendary: { label: 'LEGENDARY', cls: 'rar-legendary' }
+  };
+
+  const CAT_LABELS = {
+    pts: 'SCORE UPGRADE',
+    mult: 'MULTIPLY',
+    replay: 'REPLAY / POWER',
+    light: 'CANDLE & GOLD',
+    util: 'COMBO & WILD'
+  };
+
+  const BURN_CRAFT_COST = 4;
+  const MIN_BAG_SIZE = 10;
+  const CLONE_CRAFT_COST = 9;
+  const FUSE_CRAFT_COST = 7;
+  const REROLL_COST = 3;
+  const MAX_WILD_TILES = 2;
+  const WORD_SPAM_THRESHOLD = 3;
+  const TILE_SPAM_THRESHOLD = 7;
+
+  const STAKES = [
+    { id: 'white',  icon: '⚪', name: 'White Stake',  short: 'White',  wordsPerStage: 4, swapsPerStage: 3, goalMult: 1,    noFuse: false, shopPriceAdd: 0, desc: 'Base rules: 4 Words, 3 Swaps, full Forge.' },
+    { id: 'red',    icon: '🔴', name: 'Red Stake',    short: 'Red',    wordsPerStage: 4, swapsPerStage: 2, goalMult: 1,    noFuse: false, shopPriceAdd: 0, desc: '-1 Swap per stage (2 Swaps instead of 3).' },
+    { id: 'green',  icon: '🟢', name: 'Green Stake',  short: 'Green',  wordsPerStage: 4, swapsPerStage: 2, goalMult: 1.35, noFuse: false, shopPriceAdd: 0, desc: 'Includes Red · Goals scale ×1.35 faster.' },
+    { id: 'blue',   icon: '🔵', name: 'Blue Stake',   short: 'Blue',   wordsPerStage: 4, swapsPerStage: 2, goalMult: 1.35, noFuse: true,  shopPriceAdd: 0, desc: 'Includes Green · No Fusing (🔗 Fuse 2 Tiles locked).' },
+    { id: 'purple', icon: '🟣', name: 'Purple Stake', short: 'Purple', wordsPerStage: 3, swapsPerStage: 2, goalMult: 1.35, noFuse: true,  shopPriceAdd: 0, desc: 'Includes Blue · -1 Word per stage (only 3 Words!).' },
+    { id: 'gold',   icon: '🟡', name: 'Gold Stake',   short: 'Gold',   wordsPerStage: 3, swapsPerStage: 2, goalMult: 1.75, noFuse: true,  shopPriceAdd: 2, desc: 'Includes Purple · All Shop prices +$2 & Goals ×1.75.' }
+  ];
+  const STAKE_MAP = Object.fromEntries(STAKES.map(s => [s.id, s]));
+
+  const LS_SCALE_KEY = 'tileforge_goal_scale';
+  const LS_STAKE_KEY = 'tileforge_stake';
+  const LS_WINS_KEY = 'tileforge_wins';
+  const SCALE_PRESETS = [10, 25, 50, 75, 100, 150, 200];
+
+  function readStorage(key, fallback) {
+    try {
+      const v = typeof localStorage !== 'undefined' ? localStorage.getItem(key) : null;
+      return v === null ? fallback : v;
+    } catch {
+      return fallback;
+    }
+  }
+  function writeStorage(key, val) {
+    try {
+      if (typeof localStorage !== 'undefined') localStorage.setItem(key, String(val));
+    } catch {}
+  }
+  function clampScalePct(v) {
+    const n = Math.round(Number(v));
+    if (!isFinite(n)) return 100;
+    return Math.max(10, Math.min(200, n));
+  }
+  function readClearedStakes() {
+    try {
+      const raw = readStorage(LS_WINS_KEY, '[]');
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr.filter(id => !!STAKE_MAP[id]) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  let goalScalePct = clampScalePct(readStorage(LS_SCALE_KEY, 100));
+  let activeStakeId = STAKE_MAP[readStorage(LS_STAKE_KEY, 'white')] ? readStorage(LS_STAKE_KEY, 'white') : 'white';
+  let clearedStakes = new Set(readClearedStakes());
+  let menuStakeId = activeStakeId;
+
+  let S = null;
+  let pendingComboCtx = null;
+  let dragUid = null;
+  let touchDrag = null;
+  let suppressNextClick = false;
+
+  const getStake = (id = S ? S.stakeId : activeStakeId) => STAKE_MAP[id] || STAKES[0];
+  const effectiveGoalMult = (stakeId = S ? S.stakeId : activeStakeId, scalePct = S ? S.goalScalePct : goalScalePct) =>
+    getStake(stakeId).goalMult * (clampScalePct(scalePct) / 100);
+  const stageSpec = (terrace, stageInTerrace, auditSpec = S ? S.audit : null) =>
+    getRunStageSpec(terrace, stageInTerrace, auditSpec, effectiveGoalMult());
+  const getBurnCost = () => BURN_CRAFT_COST + getStake().shopPriceAdd;
+  const getCloneCost = () => CLONE_CRAFT_COST + getStake().shopPriceAdd;
+  const getFuseCost = () => FUSE_CRAFT_COST + getStake().shopPriceAdd;
+  const getRerollCost = () => REROLL_COST + getStake().shopPriceAdd;
+  function markStakeCleared(stakeId) {
+    if (!STAKE_MAP[stakeId]) return;
+    clearedStakes.add(stakeId);
+    writeStorage(LS_WINS_KEY, JSON.stringify([...clearedStakes]));
+  }
+
+  const letterKey = (t) => (t.lead ? 'Pb' : (t.wild ? '?' : t.letter));
+  const countMod = (t, id) => (t && t.mods ? t.mods.filter(m => m === id).length : 0);
+  const countWildsInBag = () => (S && S.bag ? S.bag.filter(t => !t.lead && t.wild).length : 0);
+  const isAudit = () => S.stageInTerrace === 2;
+
+  function maybeScheduleAntiSpamAudit(notify = true) {
+    if (!S || !S.wordCounts || !S.tileCounts) return null;
+    const candidates = [];
+    for (const [w, cnt] of Object.entries(S.wordCounts)) {
+      if (cnt >= WORD_SPAM_THRESHOLD) {
+        candidates.push({ type: 'word', key: w, tag: 'W:' + w, pressure: cnt / WORD_SPAM_THRESHOLD });
+      }
+    }
+    for (const [k, cnt] of Object.entries(S.tileCounts)) {
+      if (cnt >= TILE_SPAM_THRESHOLD) {
+        candidates.push({ type: 'tile', key: k, tag: 'T:' + k, pressure: cnt / TILE_SPAM_THRESHOLD });
+      }
+    }
+    if (!candidates.length) return null;
+    candidates.sort((a, b) => b.pressure - a.pressure);
+    const pick = candidates.find(c => c.tag !== S.lastDynamicAuditKey) || candidates[0];
+    const dynAudit = pick.type === 'word'
+      ? createAntiSpamWordAudit(pick.key)
+      : createAntiSpamTileAudit(pick.key);
+
+    if (S.stageInTerrace < 2) {
+      const same = S.audit && S.audit.dynamic && (
+        (S.audit.id === 'ban_word' && pick.type === 'word' && S.audit.bannedWord === pick.key) ||
+        (S.audit.id === 'censor_tile' && pick.type === 'tile' && S.audit.censoredKey === pick.key)
+      );
+      S.audit = dynAudit;
+      if (!same && notify) showToast(`⚔️ Anti-Spam Audit Scheduled: ${dynAudit.name}`);
+    } else {
+      const same = S.nextAudit && S.nextAudit.dynamic && (
+        (S.nextAudit.id === 'ban_word' && pick.type === 'word' && S.nextAudit.bannedWord === pick.key) ||
+        (S.nextAudit.id === 'censor_tile' && pick.type === 'tile' && S.nextAudit.censoredKey === pick.key)
+      );
+      S.nextAudit = dynAudit;
+      if (!same && notify) showToast(`⚔️ Next Terrace Audit Scheduled: ${dynAudit.name}`);
+    }
+    return dynAudit;
+  }
+
+  function popAuditFromBag(allowNoReplay = true) {
+    if (!S.auditBag || !S.auditBag.length) {
+      S.auditBag = shuffleArr(Object.keys(AUDITS));
+    }
+    if (!allowNoReplay && S.auditBag[S.auditBag.length - 1] === 'no_replay' && S.auditBag.length > 1) {
+      const top = S.auditBag.length - 1;
+      [S.auditBag[0], S.auditBag[top]] = [S.auditBag[top], S.auditBag[0]];
+    }
+    return createAuditInstance(S.auditBag.pop());
+  }
+
+  function initState() {
+    uidSeq = 1;
+    const appEl = document.getElementById('app');
+    if (appEl) appEl.classList.remove('scale-broken');
+    const bag = makeBaseBag(1, 20);
+    const st = getStake(activeStakeId);
+    S = {
+      terrace: 0,
+      stageInTerrace: 0,
+      stakeId: st.id,
+      goalScalePct,
+      auditBag: shuffleArr(Object.keys(AUDITS)),
+      audit: null,
+      nextAudit: null,
+      phase: 'play', // 'play' | 'shop'
+      score: 0,
+      wordsLeft: st.wordsPerStage,
+      swapsLeft: st.swapsPerStage,
+      gold: 6,
+      bag,
+      draw: [],
+      hand: [],
+      line: [null, null, null, null, null],
+      candleSlot: 2,
+      swapSet: null,
+      sortMode: 'az',
+      shopCards: [],
+      shopSel: null,
+      shopMode: null, // null | 'card' | 'clone' | 'fuse'
+      fuseFirstUid: null,
+      wbFilter: 'all',
+      rerollCost: getRerollCost(),
+      shopNum: 0,
+      busy: false,
+      broken: false,
+      wordsPlayed: 0,
+      wordCounts: {},
+      tileCounts: {},
+      lastDynamicAuditKey: null,
+      demoBanner: null,
+      calcOverride: null
+    };
+    S.audit = popAuditFromBag(false);
+    S.nextAudit = popAuditFromBag(true);
+    startStage(0, 0);
+  }
+
+  function startStage(terrace, stageInTerrace) {
+    const st = getStake();
+    S.terrace = terrace;
+    S.stageInTerrace = stageInTerrace;
+    const spec = stageSpec(terrace, stageInTerrace, S.audit);
+    S.phase = 'play';
+    S.score = 0;
+    S.wordsLeft = st.wordsPerStage;
+    S.swapsLeft = st.swapsPerStage;
+    S.line = [null, null, null, null, null];
+    S.candleSlot = (terrace === 0 && stageInTerrace === 0) ? 2 : nextCandleSlot(S.candleSlot);
+    S.swapSet = null;
+    S.shopSel = null;
+    S.shopMode = null;
+    S.fuseFirstUid = null;
+    S.calcOverride = null;
+    S.draw = shuffleArr(S.bag);
+
+    // The Heavy Lead Audit shuffles 2 temporary Pb (0-pt) slugs into the draw pile only
+    if (isAudit() && S.audit && S.audit.id === 'lead_tiles') {
+      const makeLead = () => ({ uid: nextUid(), letter: 'Pb', val: 0, wild: false, lead: true, mods: [] });
+      S.draw.splice(Math.min(S.draw.length, Math.floor(Math.random() * 6)), 0, makeLead());
+      S.draw.splice(Math.min(S.draw.length, 3 + Math.floor(Math.random() * 9)), 0, makeLead());
+    }
+
+    S.hand = [];
+    drawTilesFromState(S, 7);
+    sortHandArr(S.hand, S.sortMode);
+    if (spec.isAudit) {
+      showToast(`⚔️ Audit: ${spec.name}`);
+    }
+  }
+
+  function wildFlagsForLine(tiles) {
+    return tiles.map((t, j) => {
+      if (t.lead) return false;
+      if (t.wild) return true;
+      if (j + 1 < tiles.length && countMod(tiles[j + 1], 'wild_left') > 0) return true;
+      if (j > 0 && countMod(tiles[j - 1], 'wild_right') > 0) return true;
+      return false;
+    });
+  }
+
+  function auditCheck(v) {
+    if (!isAudit() || !S.audit) return '';
+    if (S.audit.id === 'min_4' && v.count < 4) return 'Audit: Only 4 or 5-tile words count.';
+    if (S.audit.id === 'max_3' && v.count > 3) return 'Audit: Only 1, 2, or 3-tile words count.';
+    if (S.audit.id === 'must_repeat' && !/(.).*\1/.test(v.word)) return 'Audit: Word must repeat a letter (BOOK, TREE…).';
+    if (S.audit.id === 'ban_word' && S.audit.bannedWord && v.word.includes(S.audit.bannedWord)) {
+      return `Audit: “${S.audit.bannedWord}” is banned (Index Expurgatorius)!`;
+    }
+    return '';
+  }
+
+  function computeTriggers(tiles) {
+    const len = tiles.length;
+    const trig = tiles.map(t => (t.wild ? 1 : Math.min(4096, 1 + countMod(t, 'replay_self'))));
+
+    const pingPongPairs = new Set();
+    for (let j = 0; j < len - 1; j++) {
+      if (tiles[j].wild || tiles[j + 1].wild) continue;
+      const cR = countMod(tiles[j], 'replay_right');
+      const cL = countMod(tiles[j + 1], 'replay_left');
+      if (cR > 0 && cL > 0) {
+        const ppFactor = Math.min(256, 8 * Math.max(1, cR + cL - 1));
+        trig[j] = Math.min(4096, trig[j] * ppFactor);
+        trig[j + 1] = Math.min(4096, trig[j + 1] * ppFactor);
+        pingPongPairs.add(j);
+      }
+    }
+
+    for (let j = len - 1; j >= 1; j--) {
+      if (pingPongPairs.has(j - 1) || tiles[j - 1].wild) continue;
+      const cL = countMod(tiles[j], 'replay_left');
+      if (cL > 0) {
+        trig[j - 1] = Math.min(4096, trig[j - 1] * (1 + cL * trig[j]));
+      }
+    }
+
+    for (let j = 0; j < len - 1; j++) {
+      if (pingPongPairs.has(j) || tiles[j + 1].wild) continue;
+      const cR = countMod(tiles[j], 'replay_right');
+      if (cR > 0) {
+        trig[j + 1] = Math.min(4096, trig[j + 1] * (1 + cR * trig[j]));
+      }
+    }
+
+    for (let j = 0; j < len; j++) {
+      if (tiles[j].wild) trig[j] = 1;
+    }
+
+    return { trig, pingPongPairs };
+  }
+
+  function computeScore(v, preview = true) {
+    const len = v.count;
+    const lengthBonus = LENGTH_BONUS[len] || 0;
+    let wordScore = lengthBonus;
+    let goldGain = 0;
+    const steps = [];
+
+    const audit = isAudit() ? S.audit : null;
+    const snuffed = !!(audit && audit.id === 'snuffed');
+    const noReplay = !!(audit && audit.id === 'no_replay');
+    const isConsChar = ch => !!ch && /[A-Z]/.test(ch) && !'AEIOU'.includes(ch);
+
+    const { trig, pingPongPairs } = noReplay
+      ? { trig: v.tiles.map(() => 1), pingPongPairs: new Set() }
+      : computeTriggers(v.tiles);
+
+    const lightLevels = computeSlotLights(S.line, S.candleSlot, countMod, snuffed);
+
+    const simVal = v.tiles.map((t, j) => {
+      if (t.lead) return 0;
+      if (audit) {
+        if (audit.id === 'censor_tile' && audit.censoredKey && letterKey(t) === audit.censoredKey) return 0;
+        const cat = tileCategory(t);
+        const up = t.wild ? '?' : t.letter.toUpperCase();
+        if (audit.id === 'half_vowels' && cat === 'vowel') return Math.floor(t.val / 2);
+        if (audit.id === 'half_cons' && cat === 'cons') return Math.floor(t.val / 2);
+        if (audit.mutedChars && !t.wild) {
+          const chars = up.split('');
+          if (chars.every(ch => audit.mutedChars.includes(ch))) return 0;
+        }
+        if (audit.id === 'no_start_cons' && j === 0 && !t.wild && isConsChar(up[0])) return 0;
+        if (audit.id === 'no_end_cons' && j === len - 1 && !t.wild && isConsChar(up[up.length - 1])) return 0;
+      }
+      return t.val;
+    });
+
+    // Pre-score additive neighbor buffs (+30 Left / +30 Right)
+    for (let j = 0; j < len; j++) {
+      const t = v.tiles[j];
+      const addL = countMod(t, 'add_left_30');
+      const addR = countMod(t, 'add_right_30');
+      if (addL > 0 && j > 0) {
+        const gain = 30 * addL * trig[j];
+        simVal[j - 1] += gain;
+        steps.push({ uid: t.uid, label: `◀︎ +${fmtC(gain)}`, cls: 'pts', wordScore });
+      }
+      if (addR > 0 && j + 1 < len) {
+        const gain = 30 * addR * trig[j];
+        simVal[j + 1] += gain;
+        steps.push({ uid: t.uid, label: `+${fmtC(gain)} ▶︎`, cls: 'pts', wordScore });
+      }
+    }
+
+    // Pre-score self & neighbor multipliers
+    for (let j = 0; j < len; j++) {
+      const t = v.tiles[j];
+      const selfMult = Math.pow(2, countMod(t, 'mult_self_2')) * Math.pow(3, countMod(t, 'mult_self_3'));
+      if (selfMult > 1) {
+        simVal[j] = safeMul(simVal[j], selfMult);
+      }
+
+      const fLeft = Math.pow(2, countMod(t, 'mult_left_2')) *
+                    Math.pow(3, countMod(t, 'mult_left_3')) *
+                    Math.pow(4, countMod(t, 'mult_left_4'));
+      if (fLeft > 1 && j > 0) {
+        const effLeft = safePow(fLeft, Math.min(trig[j], 1024));
+        simVal[j - 1] = safeMul(simVal[j - 1], effLeft);
+        steps.push({ uid: t.uid, label: `◀︎ ${fmtC(effLeft)}×`, cls: 'mult', wordScore });
+      }
+
+      const fRight = Math.pow(2, countMod(t, 'mult_right_2')) *
+                     Math.pow(3, countMod(t, 'mult_right_3')) *
+                     Math.pow(4, countMod(t, 'mult_right_4'));
+      if (fRight > 1 && j + 1 < len) {
+        const effRight = safePow(fRight, Math.min(trig[j], 1024));
+        simVal[j + 1] = safeMul(simVal[j + 1], effRight);
+        steps.push({ uid: t.uid, label: `${fmtC(effRight)}× ▶︎`, cls: 'mult', wordScore });
+      }
+    }
+
+    for (const pairIdx of pingPongPairs) {
+      steps.push({ uid: v.tiles[pairIdx].uid, label: '⚡ PING-PONG ×8!', cls: 'echo', wordScore });
+    }
+
+    // Pass 1: Tile points, permanent growth (2× Forever), gold triggers, and clones
+    const clonedThisWord = [];
+    for (let j = 0; j < len; j++) {
+      const t = v.tiles[j];
+      const kMax = trig[j];
+      const light = lightInfoFromLevel(lightLevels[v.positions[j]]);
+
+      const cGrow = countMod(t, 'grow_2');
+      const cGold = countMod(t, 'gold_3');
+
+      const applySingleTileTrigger = (recordStep) => {
+        const ptsGain = safeMul(simVal[j], light.mult);
+        wordScore = isFinite(wordScore) && isFinite(ptsGain)
+          ? wordScore + ptsGain
+          : (wordScore > 0 || ptsGain > 0 ? Infinity : 0);
+
+        if (recordStep) {
+          const pfx = light.level === 'blazing' || light.level === 'bright' ? '🕯️ ' : (kMax > 1 ? '↻ ' : '');
+          steps.push({ uid: t.uid, label: `${pfx}+${fmtC(ptsGain)}`, cls: 'pts', wordScore });
+        }
+
+        if (cGold > 0) {
+          goldGain = Math.min(100, goldGain + 3 * cGold);
+          if (recordStep) steps.push({ uid: t.uid, label: `+$${3 * cGold}`, cls: 'gold', wordScore });
+        }
+      };
+
+      const animIndiv = Math.min(kMax, 3);
+      for (let k = 0; k < animIndiv; k++) {
+        applySingleTileTrigger(true);
+      }
+
+      if (kMax > animIndiv) {
+        const rem = kMax - animIndiv;
+        const ptsGain = safeMul(safeMul(simVal[j], light.mult), rem);
+        wordScore = isFinite(wordScore) && isFinite(ptsGain) ? wordScore + ptsGain : Infinity;
+        if (cGold > 0) goldGain = Math.min(100, goldGain + 3 * cGold * rem);
+        steps.push({ uid: t.uid, label: `↻ ×${fmtC(rem)} burst!`, cls: 'echo', wordScore });
+      }
+
+      if (cGrow > 0) {
+        const growMult = Math.pow(2, cGrow);
+        const nextVal = safeMul(t.val, growMult);
+        if (!preview) t.val = nextVal;
+        steps.push({ uid: t.uid, label: `📈 → ${fmtC(nextVal)}`, cls: 'pts', wordScore });
+      }
+
+      if (!preview && cGrow > 0) {
+        const k = letterKey(t);
+        for (const b of S.bag) {
+          if (!b.lead && letterKey(b) === k) {
+            b.val = isFinite(t.val) ? Math.max(b.val, t.val) : Infinity;
+          }
+        }
+      }
+
+      if (!preview) {
+        const pushCleanClone = (src) => {
+          if (!src || src.lead || src.wild) return;
+          const c = {
+            uid: nextUid(),
+            letter: src.letter,
+            val: src.val,
+            wild: false,
+            mods: []
+          };
+          S.bag.push(c);
+          clonedThisWord.push(c.letter);
+        };
+        for (let k = 0; k < countMod(t, 'clone_self'); k++) {
+          pushCleanClone(t);
+        }
+        if (j > 0) {
+          for (let k = 0; k < countMod(t, 'clone_left'); k++) {
+            pushCleanClone(v.tiles[j - 1]);
+          }
+        }
+        if (j + 1 < len) {
+          for (let k = 0; k < countMod(t, 'clone_right'); k++) {
+            pushCleanClone(v.tiles[j + 1]);
+          }
+        }
+      }
+    }
+
+    // Pass 2a: Whole-word multipliers (applies to total word score regardless of slot order)
+    for (let j = 0; j < len; j++) {
+      const t = v.tiles[j];
+      const wordMult = Math.pow(2, countMod(t, 'mult_word_2')) * Math.pow(3, countMod(t, 'mult_word_3'));
+      if (wordMult > 1) {
+        const kMax = trig[j];
+        const animIndiv = Math.min(kMax, 3);
+        for (let k = 0; k < animIndiv; k++) {
+          wordScore = safeMul(wordScore, wordMult);
+          steps.push({ uid: t.uid, label: `${wordMult}× Word!`, cls: 'mult', wordScore });
+        }
+        if (kMax > animIndiv) {
+          const rem = kMax - animIndiv;
+          wordScore = safeMul(wordScore, safePow(wordMult, rem));
+          steps.push({ uid: t.uid, label: `↻ ${fmtC(wordMult)}×W ×${fmtC(rem)}!`, cls: 'mult', wordScore });
+        }
+      }
+    }
+
+    // Pass 2b: Whole-word exponents (^1.25)
+    for (let j = 0; j < len; j++) {
+      const t = v.tiles[j];
+      const cPow = countMod(t, 'power_word');
+      if (cPow > 0 && wordScore > 0) {
+        const exp = Math.pow(1.25, cPow);
+        const kMax = trig[j];
+        const animIndiv = Math.min(kMax, 3);
+        for (let k = 0; k < animIndiv; k++) {
+          if (wordScore <= 1) wordScore += 2;
+          wordScore = safePow(wordScore, exp);
+          steps.push({ uid: t.uid, label: `⚡ ^${exp.toFixed(2)}!`, cls: 'echo', wordScore });
+        }
+        if (kMax > animIndiv) {
+          const rem = kMax - animIndiv;
+          const loops = Math.min(rem, 1100);
+          for (let b = 0; b < loops; b++) {
+            if (wordScore <= 1) wordScore += 2;
+            wordScore = safePow(wordScore, exp);
+            if (!isFinite(wordScore)) break;
+          }
+          if (rem > loops && isFinite(wordScore) && wordScore > 1) {
+            wordScore = Infinity;
+          }
+          steps.push({ uid: t.uid, label: `↻ ^${exp.toFixed(2)} ×${fmtC(rem)}!`, cls: 'echo', wordScore });
+        }
+      }
+    }
+
+    if (audit && audit.id === 'censor_tile' && audit.censoredKey) {
+      for (let j = 0; j < len; j++) {
+        const t = v.tiles[j];
+        if (letterKey(t) === audit.censoredKey) {
+          wordScore = safeMul(wordScore, 0.5);
+          steps.push({ uid: t.uid, label: '✕ Censored ×0.5', cls: 'mult', wordScore });
+        }
+      }
+    }
+
+    let total = isFinite(wordScore) ? Math.round(wordScore) : Infinity;
+    if (!isFinite(total)) total = Infinity;
+    return { baseScore: lengthBonus, steps, total, goldGain, clonedThisWord, lightLevels, snuffed };
+  }
+
+  function rollRarity() {
+    const r = Math.random();
+    if (S.terrace <= 1) {
+      if (r < 0.72) return 'common';
+      if (r < 0.96) return 'uncommon';
+      return 'rare';
+    }
+    if (S.terrace <= 4) {
+      if (r < 0.62) return 'common';
+      if (r < 0.91) return 'uncommon';
+      return 'rare';
+    }
+    if (S.terrace <= 6) {
+      if (r < 0.54) return 'common';
+      if (r < 0.85) return 'uncommon';
+      if (r < 0.99) return 'rare';
+      return 'legendary';
+    }
+    if (r < 0.45) return 'common';
+    if (r < 0.77) return 'uncommon';
+    if (r < 0.96) return 'rare';
+    return 'legendary';
+  }
+
+  function genShop() {
+    S.shopNum++;
+    S.shopSel = null;
+    S.shopMode = null;
+    S.fuseFirstUid = null;
+    S.rerollCost = getRerollCost();
+    const priceAdd = getStake().shopPriceAdd;
+    const atWildCap = countWildsInBag() >= MAX_WILD_TILES;
+
+    const allUps = Object.values(UPGRADES).filter(u => !(atWildCap && u.id === 'wild_self'));
+    const byRarity = {
+      common: allUps.filter(u => u.rarity === 'common'),
+      uncommon: allUps.filter(u => u.rarity === 'uncommon'),
+      rare: allUps.filter(u => u.rarity === 'rare'),
+      legendary: allUps.filter(u => u.rarity === 'legendary')
+    };
+    const fallbackOrder = ['legendary', 'rare', 'uncommon', 'common'];
+    const picked = [];
+    const usedIds = new Set();
+
+    for (let i = 0; i < 6; i++) {
+      const target = rollRarity();
+      const startIdx = Math.max(0, fallbackOrder.indexOf(target));
+      let chosen = null;
+      for (let t = startIdx; t < fallbackOrder.length; t++) {
+        const pool = byRarity[fallbackOrder[t]].filter(u => !usedIds.has(u.id));
+        if (pool.length) {
+          chosen = pickRand(pool);
+          break;
+        }
+      }
+      if (!chosen) {
+        const anyAvail = allUps.filter(u => !usedIds.has(u.id));
+        chosen = pickRand(anyAvail.length ? anyAvail : allUps);
+      }
+      usedIds.add(chosen.id);
+      picked.push(chosen);
+    }
+
+    S.shopCards = picked.map(item => ({ item, cost: item.cost + priceAdd, sold: false }));
+  }
+
+  function openForgeComboModal(cardIdx, tileUid) {
+    const card = S.shopCards[cardIdx];
+    const tile = S.bag.find(t => t.uid === tileUid);
+    if (!card || card.sold || !tile || S.gold < card.cost) return;
+    const choices = shuffleArr(COMBOS).slice(0, 3);
+    const sameKeyCount = S.bag.filter(t => !t.lead && letterKey(t) === letterKey(tile)).length;
+    pendingComboCtx = { cardIdx, tileUid, choices };
+    const intro = sameKeyCount > 1
+      ? `<p>Turn <b>1 copy of ${esc(tile.wild ? '?' : tile.letter)} (${fmtC(tile.val)})</b> into one of these combos (keeps all upgrades; your other ${sameKeyCount - 1} copies stay unchanged):</p>`
+      : `<p>Turn <b>${esc(tile.wild ? '?' : tile.letter)} (${fmtC(tile.val)})</b> into one of these combos (keeps all stacked upgrades!):</p>`;
+    showModal(
+      `Forge Combo Tile ($${card.cost})`,
+      `${intro}
+       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+         ${choices.map((c, idx) => `<button class="btn gold" style="flex:1;min-width:110px" data-act="pickForgeCombo" data-arg="${idx}">${esc(c.letter)} <small>(${c.val} pts)</small></button>`).join('')}
+       </div>`,
+      `<button class="btn wood" data-act="closeModal">Cancel</button>`
+    );
+  }
+
+  function applyCardToTile(cardIdx, tileUid) {
+    const card = S.shopCards[cardIdx];
+    const tile = S.bag.find(t => t.uid === tileUid);
+    if (!card || card.sold || !tile) return;
+    if (S.gold < card.cost) {
+      SFX.buzz();
+      showToast(`Need $${card.cost}!`);
+      return;
+    }
+
+    if (tile.wild) {
+      SFX.buzz();
+      showToast('Wild ? tiles cannot receive upgrades!');
+      return;
+    }
+
+    const up = card.item;
+    const origLabel = tile.letter;
+    const targets = S.bag.filter(t => !t.lead && letterKey(t) === letterKey(tile));
+    if (!targets.length) return;
+
+    if (up.id === 'wild_self') {
+      if (countWildsInBag() >= MAX_WILD_TILES) {
+        SFX.buzz();
+        showToast(`Wild limit reached (max ${MAX_WILD_TILES} Wild ? tiles per run)!`);
+        return;
+      }
+      const cleanPool = targets.slice().sort((a, b) => a.mods.length - b.mods.length || a.val - b.val);
+      const target = cleanPool[0];
+      S.gold -= card.cost;
+      card.sold = true;
+      S.shopSel = null;
+      S.shopMode = null;
+      target.wild = true;
+      target.letter = '?';
+      target.mods = [];
+      SFX.chord();
+      showToast(`1 ${origLabel} tile became a clean Wild ? (${countWildsInBag()}/${MAX_WILD_TILES} Wilds)!`);
+      render();
+      return;
+    }
+
+    if (targets.some(t => t.mods.includes('wild_left') || t.mods.includes('wild_right'))) {
+      SFX.buzz();
+      showToast('Tiles with Wild Left/Right cannot stack more upgrades!');
+      return;
+    }
+
+    if (up.id === 'wild_left' || up.id === 'wild_right') {
+      if (targets.some(t => t.mods.length > 0)) {
+        SFX.buzz();
+        showToast('Wild Left/Right can only be forged onto clean tiles!');
+        return;
+      }
+    }
+
+    if (up.id === 'forge_combo') {
+      openForgeComboModal(cardIdx, tileUid);
+      return;
+    }
+
+    S.gold -= card.cost;
+    card.sold = true;
+    S.shopSel = null;
+    S.shopMode = null;
+
+    if (up.id === 'add_self_20') {
+      targets.forEach(t => { t.val += 20; });
+      SFX.chord();
+      showToast(targets.length > 1
+        ? `ALL ${targets.length} ${origLabel} tiles boosted +20 → ${fmtC(tile.val)}!`
+        : `${origLabel} boosted +20 → ${fmtC(tile.val)}!`);
+    } else if (up.id === 'add_self_40') {
+      targets.forEach(t => { t.val += 40; });
+      SFX.chord();
+      showToast(targets.length > 1
+        ? `ALL ${targets.length} ${origLabel} tiles boosted +40 → ${fmtC(tile.val)}!`
+        : `${origLabel} boosted +40 → ${fmtC(tile.val)}!`);
+    } else {
+      targets.forEach(t => { t.mods.push(up.id); });
+      SFX.chord();
+      showToast(targets.length > 1
+        ? `Forged ${up.name} onto ALL ${targets.length} ${origLabel} tiles!`
+        : `Forged ${up.name} onto ${origLabel}!`);
+    }
+    render();
+  }
+
+  function applyWorkbenchCraft(uid) {
+    const tile = S.bag.find(t => t.uid === uid);
+    if (!tile) return;
+
+    const burnCost = getBurnCost();
+    const cloneCost = getCloneCost();
+    const fuseCost = getFuseCost();
+
+    if (S.shopMode === 'burn') {
+      if (S.gold < burnCost) { SFX.buzz(); showToast(`Need $${burnCost}!`); return; }
+      if (S.bag.length <= MIN_BAG_SIZE) { SFX.buzz(); showToast(`Minimum bag size is ${MIN_BAG_SIZE} tiles!`); return; }
+      const same = S.bag.filter(t => !t.lead && letterKey(t) === letterKey(tile));
+      if (!same.length) return;
+      same.sort((a, b) => a.mods.length - b.mods.length || a.val - b.val);
+      const victim = same[0];
+      S.gold -= burnCost;
+      S.bag = S.bag.filter(t => t.uid !== victim.uid);
+      S.shopMode = null;
+      const leftCount = same.length - 1;
+      const lbl = tile.wild ? '?' : tile.letter;
+      SFX.whoosh();
+      showToast(leftCount > 0 ? `Burned 1 ${lbl}! (${leftCount} left · Bag: ${S.bag.length})` : `Burned 1 ${lbl}! (Bag: ${S.bag.length})`);
+      render();
+      return;
+    }
+
+    if (S.shopMode === 'clone') {
+      if (S.gold < cloneCost) { SFX.buzz(); showToast(`Need $${cloneCost}!`); return; }
+      if (tile.wild) { SFX.buzz(); showToast('Wild ? tiles cannot be cloned!'); return; }
+      S.gold -= cloneCost;
+      S.shopMode = null;
+      S.bag.push({
+        uid: nextUid(),
+        letter: tile.letter,
+        val: tile.val,
+        wild: false,
+        mods: []
+      });
+      SFX.win();
+      showToast(`Cloned 1 clean copy of ${tile.letter}! (Bag: ${S.bag.length})`);
+      render();
+      return;
+    }
+
+    if (S.shopMode === 'fuse') {
+      if (getStake().noFuse) { SFX.buzz(); showToast('Fuse 2 Tiles is locked on this Stake!'); return; }
+      if (S.gold < fuseCost) { SFX.buzz(); showToast(`Need $${fuseCost}!`); return; }
+      if (!S.fuseFirstUid) {
+        if (tile.wild || tile.letter.length >= 3) {
+          SFX.buzz();
+          showToast('Pick a 1–2 letter non-wild tile first!');
+          return;
+        }
+        S.fuseFirstUid = uid;
+        SFX.pick();
+        render();
+        return;
+      }
+
+      const first = S.bag.find(t => t.uid === S.fuseFirstUid);
+      let second = tile;
+      if (S.fuseFirstUid === uid) {
+        if (first && !first.wild && first.letter.length * 2 <= 3) {
+          const sameCopy = S.bag.find(t => t.uid !== first.uid && letterKey(t) === letterKey(first));
+          if (sameCopy) {
+            second = sameCopy;
+          } else {
+            S.fuseFirstUid = null;
+            SFX.drop();
+            render();
+            return;
+          }
+        } else {
+          S.fuseFirstUid = null;
+          SFX.drop();
+          render();
+          return;
+        }
+      }
+
+      if (!first || second.wild || first.letter.length + second.letter.length > 3) {
+        SFX.buzz();
+        showToast('Combined letters must be ≤ 3 (no Wilds)!');
+        return;
+      }
+      S.gold -= fuseCost;
+      const fused = {
+        uid: nextUid(),
+        letter: first.letter + second.letter,
+        val: first.val + second.val,
+        wild: false,
+        mods: [...first.mods, ...second.mods]
+      };
+      S.bag = S.bag.filter(t => t.uid !== first.uid && t.uid !== second.uid);
+      S.bag.push(fused);
+      S.shopMode = null;
+      S.fuseFirstUid = null;
+      SFX.win();
+      showToast(`Fused into ${fused.letter} (${fmtC(fused.val)} pts)!`);
+      render();
+    }
+  }
+
+  function tilePrimaryClass(t) {
+    if (t.lead) return 'lead';
+    if (!t.mods.length) return '';
+    if (t.mods.some(m => m === 'power_word' || m.startsWith('replay_'))) return 'mat-prism';
+    if (t.mods.some(m => m.startsWith('light_'))) return 'mat-lantern';
+    if (t.mods.some(m => m.startsWith('mult_'))) return 'mat-ruby';
+    if (t.mods.some(m => m === 'grow_2' || m.startsWith('add_'))) return 'mat-sapphire';
+    if (t.mods.some(m => m === 'gold_3')) return 'mat-gilded';
+    return 'mat-catalyst';
+  }
+
+  function tileHtml(t, opts = {}) {
+    const isWildVisual = !t.lead && (t.wild || opts.neighborWild);
+    const cls = ['tile'];
+    if (isWildVisual) cls.push('wild');
+    if (t.letter.length === 2 && !t.lead) cls.push('len2', 'combo-tile');
+    if (t.letter.length >= 3 && !t.lead) cls.push('len3', 'combo-tile');
+    const matCls = tilePrimaryClass(t);
+    if (matCls) cls.push(matCls);
+    if (S.swapSet && S.swapSet.has(t.uid)) cls.push('marked');
+    if (opts.pickable) cls.push('pickable');
+    if (opts.unpickable) cls.push('unpickable');
+    if (S.fuseFirstUid === t.uid) cls.push('fuse-picked');
+
+    const modCounts = new Map();
+    for (const m of t.mods) {
+      modCounts.set(m, (modCounts.get(m) || 0) + 1);
+    }
+    const entries = [...modCounts.entries()];
+    const shownChips = entries.slice(0, 2).map(([mId, cnt]) => {
+      const u = UPGRADES[mId];
+      const lbl = cnt > 1 ? `${u.chip}×${cnt}` : u.chip;
+      return `<span class="tchip tchip-${u.color}">${esc(lbl)}</span>`;
+    });
+    if (entries.length > 2) {
+      shownChips.push(`<span class="tchip tchip-more">+${entries.length - 2}</span>`);
+    }
+
+    const ltrHtml = opts.fill
+      ? `<span class="ltr res">${esc(opts.fill)}</span>`
+      : t.wild
+        ? `<span class="ltr">?</span>`
+        : `<span class="ltr">${esc(t.letter)}</span>`;
+
+    const tipParts = t.lead
+      ? ['Lead Slug (Pb) · 0 pts · Cannot score! Swap it or play for 0 to clear it.']
+      : [`${t.wild ? 'Wild ?' : t.letter} · ${fmtC(t.val)} pts`];
+    entries.forEach(([mId, cnt]) => {
+      const u = UPGRADES[mId];
+      tipParts.push(`${u.name}${cnt > 1 ? ` (×${cnt})` : ''}: ${u.short}`);
+    });
+    if (opts.neighborWild && !t.wild) tipParts.push('Wild right now (from neighbor Wild upgrade)!');
+    if (opts.stackCount && opts.stackCount > 1) {
+      tipParts.push(`${opts.stackCount} copies in bag — forging upgrades ALL ${opts.stackCount}!`);
+    }
+
+    return `
+      <div class="${cls.join(' ')}" ${opts.draggable ? 'draggable="true"' : ''} data-tf-tile="${t.uid}" data-tip-title="${esc(t.lead ? 'Lead Slug' : t.wild ? 'Wild Tile' : 'Tile ' + t.letter)}" data-tip-text="${esc(tipParts.join(' | '))}">
+        ${shownChips.length ? `<div class="tile-chips">${shownChips.join('')}</div>` : ''}
+        ${isWildVisual ? `<span class="tile-wild-tag">?</span>` : ''}
+        ${opts.stackCount > 1 ? `<span class="tile-qty">×${opts.stackCount}</span>` : ''}
+        <div class="face">${ltrHtml}<span class="val">${fmtC(t.val)}</span></div>
+      </div>
+    `;
+  }
+
+  function dropTileOnSlot(uid, targetSlot) {
+    if (S.busy || S.broken || S.phase !== 'play' || S.swapSet) return false;
+    if (targetSlot < 0 || targetSlot > 4) return false;
+    const srcLine = S.line.findIndex(t => t && t.uid === uid);
+    if (srcLine >= 0) {
+      if (srcLine === targetSlot) return false;
+      const tmp = S.line[targetSlot];
+      S.line[targetSlot] = S.line[srcLine];
+      S.line[srcLine] = tmp;
+      SFX.pick();
+      render();
+      return true;
+    }
+    const srcHand = S.hand.findIndex(t => t.uid === uid);
+    if (srcHand >= 0) {
+      const displaced = S.line[targetSlot];
+      const [moved] = S.hand.splice(srcHand, 1);
+      if (displaced) S.hand.splice(srcHand, 0, displaced);
+      S.line[targetSlot] = moved;
+      SFX.pick();
+      render();
+      return true;
+    }
+    return false;
+  }
+
+  function dropTileOnRack(uid, targetRackUid = null) {
+    if (S.busy || S.broken || S.phase !== 'play' || S.swapSet) return false;
+    const srcLine = S.line.findIndex(t => t && t.uid === uid);
+    if (srcLine >= 0) {
+      const tile = S.line[srcLine];
+      S.line[srcLine] = null;
+      const dstIdx = targetRackUid ? S.hand.findIndex(t => t.uid === targetRackUid) : -1;
+      if (dstIdx >= 0) S.hand.splice(dstIdx, 0, tile);
+      else S.hand.push(tile);
+      SFX.drop();
+      render();
+      return true;
+    }
+    const srcHand = S.hand.findIndex(t => t.uid === uid);
+    if (srcHand >= 0 && targetRackUid && targetRackUid !== uid) {
+      const origDst = S.hand.findIndex(t => t.uid === targetRackUid);
+      if (origDst >= 0) {
+        const [moved] = S.hand.splice(srcHand, 1);
+        S.hand.splice(origDst, 0, moved);
+        SFX.pick();
+        render();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function placeOrReturnTile(uid) {
+    if (S.busy || S.broken || S.phase !== 'play') return;
+    if (S.swapSet) {
+      if (S.hand.some(t => t.uid === uid)) {
+        S.swapSet.has(uid) ? S.swapSet.delete(uid) : S.swapSet.add(uid);
+        SFX.pick();
+        render();
+      }
+      return;
+    }
+    const lineIdx = S.line.findIndex(t => t && t.uid === uid);
+    if (lineIdx >= 0) {
+      S.hand.push(S.line[lineIdx]);
+      S.line[lineIdx] = null;
+      SFX.drop();
+      render();
+      return;
+    }
+    const handIdx = S.hand.findIndex(t => t.uid === uid);
+    if (handIdx >= 0) {
+      const filled = S.line.map((t, i) => (t ? i : -1)).filter(i => i >= 0);
+      let slot = -1;
+      if (!filled.length) slot = 0;
+      else {
+        const last = filled[filled.length - 1];
+        if (last < 4 && !S.line[last + 1]) slot = last + 1;
+        else slot = S.line.findIndex(t => !t);
+      }
+      if (slot < 0) { SFX.buzz(); return; }
+      S.line[slot] = S.hand.splice(handIdx, 1)[0];
+      SFX.pick();
+      render();
+    }
+  }
+
+  function shiftLine(dir) {
+    if (S.busy || S.broken || S.phase !== 'play') return;
+    const filled = S.line.map((t, i) => (t ? i : -1)).filter(i => i >= 0);
+    if (!filled.length) return;
+    if (dir < 0 && filled[0] === 0) return;
+    if (dir > 0 && filled[filled.length - 1] === 4) return;
+    const next = [null, null, null, null, null];
+    S.line.forEach((t, i) => { if (t) next[i + dir] = t; });
+    S.line = next;
+    SFX.pick();
+    render();
+  }
+
+  function clearLine() {
+    if (S.busy || S.broken) return;
+    S.line.forEach(t => { if (t) S.hand.push(t); });
+    S.line = [null, null, null, null, null];
+    SFX.drop();
+    render();
+  }
+
+  async function inscribe() {
+    if (S.busy || S.broken || S.phase !== 'play' || S.swapSet) return;
+    const v = inspectLine(S.line, wildFlagsForLine, auditCheck);
+    if (v.empty || !v.contiguous || S.wordsLeft <= 0) {
+      SFX.buzz();
+      return;
+    }
+
+    if (!v.valid) {
+      S.busy = true;
+      SFX.whoosh();
+      await sleep(220);
+      S.line = [null, null, null, null, null];
+      S.candleSlot = nextCandleSlot(S.candleSlot);
+      S.wordsLeft--;
+      S.wordsPlayed++;
+      S.busy = false;
+      if (S.wordsLeft <= 0) { openLoss(); return; }
+      drawTilesFromState(S, 7);
+      sortHandArr(S.hand, S.sortMode);
+      render();
+      return;
+    }
+
+    S.busy = true;
+    const sc = computeScore(v, false);
+    S.calcOverride = sc.baseScore;
+    render();
+    SFX.chord();
+    await sleep(200);
+
+    for (let i = 0; i < sc.steps.length; i++) {
+      const st = sc.steps[i];
+      const el = document.querySelector(`[data-tf-tile="${st.uid}"]`);
+      if (el) {
+        popEl(el);
+        floatAt(el, st.label, st.cls);
+      }
+      S.calcOverride = st.wordScore;
+      const totEl = document.getElementById('tf-word-score');
+      if (totEl) totEl.textContent = fmt(st.wordScore);
+      if (st.cls === 'mult') SFX.mult(i);
+      else if (st.cls === 'echo') SFX.echo(i);
+      else if (st.cls === 'gold') SFX.coin();
+      else SFX.tick(i);
+      await sleep(170);
+    }
+
+    S.calcOverride = sc.total;
+    const totEl = document.getElementById('tf-word-score');
+    if (totEl) {
+      totEl.textContent = fmt(sc.total);
+      floatAt(totEl, fmt(sc.total), 'total');
+    }
+
+    const spec = stageSpec(S.terrace, S.stageInTerrace, S.audit);
+
+    if (!isFinite(sc.total)) {
+      S.broken = true;
+      const appEl = document.getElementById('app');
+      if (appEl) appEl.classList.add('scale-broken');
+      const scoreEl = document.getElementById('tf-word-score');
+      if (scoreEl) scoreEl.textContent = '∞';
+      SFX.bell();
+      await sleep(600);
+      S.busy = false;
+      S.calcOverride = null;
+      S.line = [null, null, null, null, null];
+      S.wordsPlayed++;
+      showBeatitude({
+        word: v.word,
+        stageLabel: spec.label,
+        wordsPlayed: S.wordsPlayed,
+        summary: 'Your stacked forges shattered the scoring engine — only a fresh run can mend the ledger.',
+        onRestart: () => {
+          initState();
+          render();
+        }
+      });
+      return;
+    }
+
+    await sleep(340);
+    S.score += sc.total;
+    S.gold += sc.goldGain;
+    if (sc.clonedThisWord.length) {
+      showToast(`Cloned into bag: ${sc.clonedThisWord.join(', ')}`);
+    }
+    S.wordsLeft--;
+    S.wordsPlayed++;
+    S.wordCounts[v.word] = (S.wordCounts[v.word] || 0) + 1;
+    for (const t of v.tiles) {
+      if (t.lead) continue;
+      const k = letterKey(t);
+      S.tileCounts[k] = (S.tileCounts[k] || 0) + 1;
+    }
+    maybeScheduleAntiSpamAudit(true);
+    S.line = [null, null, null, null, null];
+    S.candleSlot = nextCandleSlot(S.candleSlot);
+    S.calcOverride = null;
+    S.busy = false;
+
+    if (S.score >= spec.goal) {
+      SFX.win();
+      const unusedBonus = Math.min(3, S.wordsLeft);
+      const payout = spec.reward + unusedBonus;
+      S.gold += payout;
+      if (spec.final) {
+        openVictory(payout, unusedBonus, spec.reward);
+      } else {
+        showToast(`${spec.name} cleared! +$${payout} Gold`);
+        S.demoBanner = null;
+        genShop();
+        S.phase = 'shop';
+        render();
+      }
+      return;
+    }
+
+    if (S.wordsLeft <= 0) { openLoss(); return; }
+    drawTilesFromState(S, 7);
+    sortHandArr(S.hand, S.sortMode);
+    render();
+  }
+
+  function openVictory(payout, unusedBonus, baseReward = payout - unusedBonus) {
+    const st = getStake();
+    markStakeCleared(st.id);
+    showModal(
+      'All 7 Terraces Cleared!',
+      `<p>You overcame all 7 Terraces and 7 Audits of <b>Tile Forge</b> on <b>${st.icon} ${esc(st.name)}</b> (<b>${S.goalScalePct}%</b> Goal Scale)!</p>
+       <p>Reward: <b>+$${payout}</b> ($${baseReward} audit + $${unusedBonus} unused words). You now hold <b>$${S.gold}</b>.</p>
+       <p>Visit Shop 21 and climb into Endless Terraces, or open <b>⚙ Menu</b> to try a higher Stake!</p>`,
+      `<button class="btn gold" data-act="endless">Enter Shop 21 &amp; Continue Endless</button>
+       <button class="btn lapis" data-act="restart">New Run</button>`
+    );
+  }
+
+  function openLoss() {
+    const spec = stageSpec(S.terrace, S.stageInTerrace, S.audit);
+    SFX.buzz();
+    showModal(
+      'Out of Words',
+      `<p>You scored <b>${fmt(S.score)}</b> of <b>${fmt(spec.goal)}</b> needed on ${esc(spec.label)}.</p>
+       <p>Tip: Shift high-score letters onto <b>🕯️ BRIGHT (×3)</b> with <b>‹ ›</b>, stack <b>Replay</b> + <b>2× / 3×</b>, or lower <b>Goal Scale</b> anytime in <b>⚙ Menu</b>!</p>`,
+      `<button class="btn gold" data-act="retryStage">Retry This Stage</button>
+       <button class="btn wood" data-act="restart">New Run</button>`
+    );
+  }
+
+  function loadDemoCombo() {
+    closeModal();
+    hideBeatitude();
+    S.broken = false;
+    const appEl = document.getElementById('app');
+    if (appEl) appEl.classList.remove('scale-broken');
+    S.phase = 'play';
+    S.busy = false;
+    S.swapSet = null;
+    S.calcOverride = null;
+    S.line = [null, null, null, null, null];
+    S.candleSlot = 2;
+    S.wordsLeft = Math.max(S.wordsLeft, 4);
+
+    const makeDemoTile = (letter, val, mods = []) => {
+      const t = { uid: nextUid(), letter, val, wild: false, mods: [...mods] };
+      S.bag.push(t);
+      return t;
+    };
+
+    S.hand = [
+      makeDemoTile('S', 40, ['mult_word_3', 'power_word', 'power_word', 'replay_self', 'replay_right']),
+      makeDemoTile('T', 20, ['replay_left', 'mult_left_4']),
+      makeDemoTile('A', 20, ['light_all', 'mult_left_3']),
+      makeDemoTile('R', 20, ['light_all']),
+      makeDemoTile('E', 20, ['mult_word_2']),
+      makeDemoTile('N', 10, ['replay_right']),
+      makeDemoTile('O', 10, ['replay_left', 'wild_left'])
+    ];
+    S.demoBanner = 'Demo loaded! Spell S-T-A-R-E (Legendary ^1.25×2 + Rare Ping-Pong ×8 → ∞ Beatitude!), or try N-O for Ping-Pong ×8!';
+    SFX.chord();
+    render();
+  }
+
+  function openRules() {
+    const rerollCost = getRerollCost();
+    const burnCost = getBurnCost();
+    const fuseCost = getFuseCost();
+    const cloneCost = getCloneCost();
+    showModal(
+      'How to Play Tile Forge',
+      `<p><b>✨ Everything Stacks:</b> Mix &amp; match <b>+Score</b>, <b>Multiply</b>, <b>Replay</b>, <b>Light</b> &amp; neighbors on any normal letter! <b>Wild ?</b> tiles are capped at <b>2 per run</b>, stay clean (no upgrades or replays), and <b>Clones</b> create clean un-modded copies.</p>
+       <p><b>🅰️ Letter-Wide &amp; Thinning:</b> Upgrades apply to <b>ALL copies</b> of a letter! Use <b>🔥 Burn Tile ($${burnCost})</b> to cut unwanted letters, <b>🔗 Fuse 2 Tiles ($${fuseCost})</b> to build digraphs/trigraphs, or <b>📑 Clone +1 ($${cloneCost})</b>.</p>
+       <p><b>🏔️ Run Structure, Scale &amp; Anti-Spam Audits:</b> Ascend <b>7 Terraces</b> across <b>15 Audits</b>. Repeating the same word (3×) or tile (7×) schedules a targeted <b>Anti-Spam Audit</b> banning that word or glyph! Open <b>⚙ Menu</b> to tune <b>Goal Scale (10%–200%)</b> or play <b>Stakes</b>.</p>
+       <p><b>🕯️ Candlelight &amp; Controls:</b> Tap or drag letters onto the 5 slots (shift with <b>‹ ›</b> onto <b>BRIGHT ×3</b> / <b>WARM ×2</b>) and tap <b>WORD SCORE</b> to play! Directional <b>◀︎ / ▶︎</b> triangles show which neighbor gets buffed.</p>`,
+      `<button class="btn gold" data-act="closeModal">Got It</button>`
+    );
+  }
+
+  function getGoalScaleTag(pct) {
+    if (pct <= 25) return 'Story';
+    if (pct <= 55) return 'Chill';
+    if (pct <= 85) return 'Relaxed';
+    if (pct === 100) return 'Standard';
+    if (pct <= 145) return 'Challenging';
+    return 'Brutal';
+  }
+
+  function renderScalePreviewHtml(stakeId, scalePct) {
+    const m = effectiveGoalMult(stakeId, scalePct);
+    const t1v1 = getRunStageSpec(0, 0, null, m).goal;
+    const t4v1 = getRunStageSpec(3, 0, null, m).goal;
+    const t4a = getRunStageSpec(3, 2, null, m).goal;
+    const t7a = getRunStageSpec(6, 2, null, m).goal;
+    return `Goals (<b>${esc(getStake(stakeId).short)} · ${scalePct}%</b>): T1 <b>${fmtC(t1v1)}</b> → T4 V1 <b>${fmtC(t4v1)}</b> → T4 Audit <b>${fmtC(t4a)}</b> → T7 Final <b>${fmtC(t7a)}</b>`;
+  }
+
+  function setGoalScale(pct) {
+    const next = clampScalePct(pct);
+    goalScalePct = next;
+    if (S) S.goalScalePct = next;
+    writeStorage(LS_SCALE_KEY, next);
+    const valEl = document.getElementById('tf-scale-val');
+    if (valEl) valEl.textContent = `${next}%`;
+    const tagEl = document.getElementById('tf-scale-tag');
+    if (tagEl) tagEl.textContent = getGoalScaleTag(next);
+    const sliderEl = document.getElementById('tf-scale-slider');
+    if (sliderEl) sliderEl.value = String(next);
+    const prevEl = document.getElementById('tf-scale-preview');
+    if (prevEl) prevEl.innerHTML = renderScalePreviewHtml(menuStakeId, next);
+    document.querySelectorAll('.scale-preset[data-act="setGoalScale"]').forEach(btn => {
+      btn.classList.toggle('active', +btn.dataset.arg === next);
+    });
+    render();
+  }
+
+  function openMenu(previewStakeId = S ? S.stakeId : activeStakeId) {
+    menuStakeId = STAKE_MAP[previewStakeId] ? previewStakeId : getStake().id;
+    const picked = getStake(menuStakeId);
+    const curId = S ? S.stakeId : activeStakeId;
+    const changedStake = menuStakeId !== curId;
+    const presetsHtml = SCALE_PRESETS.map(p =>
+      `<button class="scale-preset ${S.goalScalePct === p ? 'active' : ''}" data-act="setGoalScale" data-arg="${p}">${p}%</button>`
+    ).join('');
+    const stakesHtml = STAKES.map(st => {
+      const isCur = st.id === curId;
+      const isPicked = st.id === menuStakeId;
+      const isCleared = clearedStakes.has(st.id);
+      return `
+        <button class="stake-card stake-${st.id} ${isCur ? 'active' : ''} ${isPicked ? 'picked' : ''}" data-act="pickStake" data-arg="${st.id}">
+          <div class="stake-card-top">
+            <span class="stake-card-name">${st.icon} ${esc(st.name)}</span>
+            <span class="stake-badges">
+              ${isCur ? '<span class="stake-badge cur">ACTIVE</span>' : ''}
+              ${isCleared ? '<span class="stake-badge cleared">✓ CLEARED</span>' : ''}
+            </span>
+          </div>
+          <div class="stake-card-desc">${esc(st.desc)}</div>
+        </button>
+      `;
+    }).join('');
+
+    const bodyHtml = `
+      <div class="menu-section">
+        <div class="scale-head">
+          <div>
+            <b>Goal Scale (10% – 200%)</b>
+            <span class="menu-hint">Applies live to every Vigil &amp; Audit!</span>
+          </div>
+          <div class="scale-readout"><b id="tf-scale-val">${S.goalScalePct}%</b> <span id="tf-scale-tag">${getGoalScaleTag(S.goalScalePct)}</span></div>
+        </div>
+        <input class="scale-slider" id="tf-scale-slider" type="range" min="10" max="200" step="5" value="${S.goalScalePct}" aria-label="Goal Scale Percentage">
+        <div class="scale-presets">${presetsHtml}</div>
+        <div class="scale-preview" id="tf-scale-preview">${renderScalePreviewHtml(menuStakeId, S.goalScalePct)}</div>
+      </div>
+
+      <div class="menu-section">
+        <div class="menu-sec-head">
+          <b>Stakes (Cumulative Difficulty)</b>
+          <span class="menu-hint">${changedStake ? `Click button below to start ${esc(picked.name)}` : 'Pick a Stake to start a new run with'}</span>
+        </div>
+        <div class="stakes-grid">${stakesHtml}</div>
+      </div>
+
+      <div class="menu-section">
+        <div class="menu-sec-head">
+          <b>Sandbox &amp; Testing</b>
+          <span class="menu-hint">Quick tools</span>
+        </div>
+        <div class="sandbox-row">
+          <button class="btn mini violet" data-act="demoCombo">🧪 Demo ∞ Combo</button>
+          <button class="btn mini gold" data-act="addGold">+$20 Gold</button>
+        </div>
+      </div>
+    `;
+
+    const footHtml = changedStake
+      ? `<button class="btn wood" data-act="closeModal">Cancel</button>
+         <button class="btn gold" data-act="applyStake">Start New Run · ${esc(picked.name)}</button>`
+      : `<button class="btn gold" data-act="closeModal">Done</button>`;
+
+    showModal('Tile Forge · Menu', bodyHtml, footHtml);
+  }
+
+  function renderNav() {
+    const nav = document.getElementById('ws-nav');
+    if (!nav) return;
+    const st = getStake();
+    nav.innerHTML = `
+      <div class="nav-brand">
+        <span>Tile Forge</span>
+        <button class="stake-pill stake-${st.id}" data-act="menu" title="Open Menu: Goal Scale &amp; Stakes">${st.icon} ${esc(st.short)} Stake${S.goalScalePct !== 100 ? ` · ${S.goalScalePct}%` : ''}</button>
+      </div>
+      <div class="nav-tools">
+        <button class="btn mini gold" data-act="menu">⚙ Menu</button>
+        <button class="btn mini wood" data-act="restart">↺ New Run</button>
+        <button class="btn mini wood" data-act="rules">? Rules</button>
+      </div>
+    `;
+  }
+
+  function renderHud(spec) {
+    const st = getStake();
+    const pct = spec.goal ? Math.min(100, (S.score / spec.goal) * 100) : 0;
+    const pips = [0, 1, 2].map(i => `<i class="${i < S.stageInTerrace ? 'done' : i === S.stageInTerrace ? 'cur' : ''} ${i === 2 ? 'final' : ''}"></i>`).join('');
+    return `
+      <div class="hud">
+        <div class="plate">
+          <div class="plate-top"><span>${esc(spec.label.toUpperCase())}</span><span class="pips">${pips}</span></div>
+          <div class="plate-name">${esc(spec.name)}</div>
+          <div class="plate-goal">Goal: <b>${fmtC(spec.goal)}</b>${S.goalScalePct !== 100 ? ` <small class="goal-scale-note">(${S.goalScalePct}%)</small>` : ''}</div>
+        </div>
+        <div class="scorebox">
+          <div class="lbl">SCORE</div>
+          <div class="score">${fmtC(S.score)}</div>
+          <div class="bar"><i style="width:${pct}%"></i></div>
+        </div>
+        <div class="hud-stats">
+          <div class="stat words"><span class="lbl">WORDS</span><b>${S.phase === 'play' ? S.wordsLeft : st.wordsPerStage}</b></div>
+          <div class="stat swaps"><span class="lbl">SWAPS</span><b>${S.phase === 'play' ? S.swapsLeft : st.swapsPerStage}</b></div>
+          <div class="stat gold"><span class="lbl">GOLD</span><b>$${S.gold}</b></div>
+          <button class="stat rules-btn" data-act="rules">RULES</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderPlay(spec) {
+    const v = inspectLine(S.line, wildFlagsForLine, auditCheck);
+    const sc = v.empty ? null : computeScore(v, true);
+    const displayScore = S.calcOverride !== null ? S.calcOverride : (sc && v.valid ? sc.total : 0);
+    const judge = renderAngelFeedback(v);
+    const filledIdx = S.line.map((t, i) => (t ? i : -1)).filter(i => i >= 0);
+    const fillMap = {};
+    const neighborWildMap = {};
+    if (!v.empty) {
+      v.positions.forEach((p, j) => {
+        if (v.fills && v.fills[j]) fillMap[p] = v.fills[j];
+        if (v.wildFlags && v.wildFlags[j]) neighborWildMap[p] = true;
+      });
+    }
+
+    const snuffed = isAudit() && S.audit && S.audit.id === 'snuffed';
+    const lightLevels = sc ? sc.lightLevels : computeSlotLights(S.line, S.candleSlot, countMod, snuffed);
+    const allBlazing = lightLevels.every(lv => lv >= 2);
+    const willClear = v.valid && (S.score + displayScore >= spec.goal);
+    const nudgeLeft = !v.empty && !v.positions.includes(S.candleSlot) && S.candleSlot < v.positions[0] && filledIdx[0] > 0;
+    const nudgeRight = !v.empty && !v.positions.includes(S.candleSlot) && S.candleSlot > v.positions[v.positions.length - 1] && filledIdx[filledIdx.length - 1] < 4;
+
+    const canDrag = !S.swapSet && !S.busy && !S.broken;
+    const slotsHtml = S.line.map((t, i) => {
+      const info = lightInfoFromLevel(lightLevels[i]);
+      return `
+        <div class="vslot">
+          ${renderCandleHead(i, S.candleSlot, lightLevels[i], snuffed)}
+          <div class="vcell light-${info.level}" data-slot-idx="${i}">${t ? tileHtml(t, { fill: fillMap[i], neighborWild: !!neighborWildMap[i], draggable: canDrag }) : `<span class="pnum">${i + 1}</span>`}</div>
+        </div>
+      `;
+    }).join('');
+
+    const auditBannerHtml = spec.isAudit && spec.audit
+      ? `<div class="audit-banner"><b>⚔️ AUDIT · ${esc(spec.audit.name)}:</b> ${esc(spec.audit.desc)}</div>`
+      : '';
+
+    const infoHtml = S.demoBanner
+      ? `<div class="info-strip demo"><div><b>🧪 DEMO GUIDE:</b> ${esc(S.demoBanner)}</div></div>`
+      : S.swapSet
+        ? `<div class="info-strip"><div><b>Swap Mode:</b> Tap tiles on your rack to mark them (${S.swapSet.size} marked · ${S.swapsLeft} swaps left${filledIdx.length ? ' · board tiles stay put' : ''}).</div></div>`
+        : `<div class="info-strip"><div><b>🕯️ Candlelight:</b> Brightest = <b>×3</b> · Warm = <b>×2</b> · Shadow = normal (moves each word · shift with <b>‹ ›</b> or drag tiles).</div></div>`;
+
+    const lenBonus = v.empty ? 0 : (LENGTH_BONUS[v.count] || 0);
+    const breakdownText = v.empty
+      ? 'Tap or drag letters onto the 5 slots, then tap the big blue score button'
+      : `${WORD_NAMES[v.count]}${lenBonus ? ` (+${lenBonus} length bonus)` : ''} · ${S.score < spec.goal ? `${fmtC(Math.max(0, spec.goal - S.score))} left to goal` : 'Goal reached!'}`;
+
+    const noRackTiles = !S.hand.length;
+    let angelTextHtml = judge.text;
+    if (v.valid) {
+      const def = lookupWordDef(v.word, (w, d) => {
+        const el = document.getElementById('tf-word-def');
+        if (el && el.dataset.word === w) {
+          el.textContent = d;
+          el.title = d;
+        }
+      });
+      const shownDef = def || 'Valid dictionary word.';
+      angelTextHtml = `<span class="word">${esc(v.word)}</span> <span class="word-def-sep">—</span> <span id="tf-word-def" class="word-def" data-word="${esc(v.word)}" title="${esc(shownDef)}">${esc(shownDef)}</span>`;
+    }
+
+    const actionHtml = S.swapSet
+      ? `
+        <div class="actions swap-actions">
+          <button class="btn wood swap-btn" data-act="cancelSwap">Cancel</button>
+          <button class="btn gold" data-act="swapAll" ${S.swapsLeft <= 0 || noRackTiles ? 'disabled' : ''}>Swap All Rack (${S.hand.length})</button>
+          <button class="btn cinnabar grow" data-act="confirmSwap" ${S.swapSet.size ? '' : 'disabled'}>Swap ${S.swapSet.size || ''} Tile${S.swapSet.size === 1 ? '' : 's'}</button>
+        </div>
+      `
+      : `
+        <div class="actions">
+          <button class="btn cinnabar swap-btn" data-act="startSwap" ${S.swapsLeft <= 0 || noRackTiles || S.busy || S.broken ? 'disabled' : ''}>Swap (${S.swapsLeft})</button>
+          <button class="btn cinnabar" data-act="swapAll" ${S.swapsLeft <= 0 || noRackTiles || S.busy || S.broken ? 'disabled' : ''} title="Swap all tiles on your rack (tiles on the board stay put!)">${filledIdx.length ? `Swap Rack (${S.hand.length})` : 'Swap All'}</button>
+          <button class="btn wood" data-act="sort">Sort ${S.sortMode === 'az' ? 'A–Z' : 'Score'}</button>
+          <button class="btn wood" data-act="bag">Bag (${S.draw.length}/${S.bag.length})</button>
+          <button class="btn ${v.valid || v.empty ? 'lapis' : 'wood'} grow" data-act="inscribe" ${v.empty || !v.contiguous || S.busy || S.broken ? 'disabled' : ''}>
+            Play Word${S.busy ? '' : v.valid ? ` <small>+${fmtC(sc.total)}</small>` : (!v.empty && v.contiguous ? ' <small>(for 0)</small>' : '')}
+          </button>
+        </div>
+      `;
+
+    return `
+      ${renderHud(spec)}
+      ${auditBannerHtml}
+      ${infoHtml}
+      <div class="book-cover">
+        <div class="book-page">
+          <div class="bk-top">
+            <div class="bk-wordtype">
+              <div class="initial">${v.empty ? '✠' : v.count}</div>
+              <div>
+                <div class="vtype">${v.empty ? 'The Book of Life' : WORD_NAMES[v.count]}</div>
+                <div class="vlvl">${v.empty ? 'Stack tile upgrades in the Forge shop!' : lenBonus ? `${v.count}-Letter Bonus: +${lenBonus}` : 'Short word (no length bonus)'}</div>
+              </div>
+            </div>
+          </div>
+          <div class="angel-line">${ANGEL_SVG}<div class="judgement ${judge.cls}">${angelTextHtml}</div></div>
+          <div class="verse-wrap">
+            <button class="shift ${nudgeLeft ? 'nudge' : ''}" data-act="shift" data-arg="-1" ${!filledIdx.length || filledIdx[0] === 0 ? 'disabled' : ''} title="Shift word left">‹</button>
+            <div class="verse-line-wrap" style="overflow:hidden">
+              <div class="candle-halo ${allBlazing ? 'all-lit' : ''}" style="left:${S.candleSlot * 20 - 7}%"></div>
+              <div class="verse-line">${slotsHtml}</div>
+            </div>
+            <button class="shift ${nudgeRight ? 'nudge' : ''}" data-act="shift" data-arg="1" ${!filledIdx.length || filledIdx[filledIdx.length - 1] === 4 ? 'disabled' : ''} title="Shift word right">›</button>
+          </div>
+          <div class="word-score-wrap">
+            <div class="word-score-row">
+              <span class="ws-spacer" aria-hidden="true"></span>
+              <button class="word-score-box ${willClear ? 'ablaze' : ''} ${!v.empty && !v.valid && v.contiguous ? 'void-btn' : ''}" data-act="inscribe" ${v.empty || !v.contiguous || S.busy || S.broken ? 'disabled' : ''}>
+                <small>${v.empty ? 'WORD SCORE' : v.valid ? '▶ TAP TO PLAY WORD' : '▶ PLAY FOR 0'}</small>
+                <b id="tf-word-score">${S.calcOverride !== null ? fmt(S.calcOverride) : (v.empty ? '0' : (v.valid ? fmt(displayScore) : '0'))}</b>
+              </button>
+              <div class="ws-side">
+                ${filledIdx.length && !S.swapSet ? `<button class="btn mini wood clear-near-btn" data-act="clear" title="Return all board tiles to your rack">↩ Clear</button>` : ''}
+              </div>
+            </div>
+            <div class="word-score-sub">${breakdownText}</div>
+          </div>
+        </div>
+      </div>
+      <div class="rack-box" data-drop-rack="1">
+        <div class="rack-tiles">${S.hand.length ? S.hand.map(t => tileHtml(t, { draggable: canDrag })).join('') : '<span>Rack empty</span>'}</div>
+      </div>
+      ${actionHtml}
+    `;
+  }
+
+  function renderShop(spec) {
+    const nextT = S.stageInTerrace === 2 ? S.terrace + 1 : S.terrace;
+    const nextS = S.stageInTerrace === 2 ? 0 : S.stageInTerrace + 1;
+    const previewAudit = S.stageInTerrace === 2 ? S.nextAudit : S.audit;
+    const nextSpec = stageSpec(nextT, nextS, previewAudit);
+    const burnCost = getBurnCost();
+    const cloneCost = getCloneCost();
+    const fuseCost = getFuseCost();
+    const rerollCost = getRerollCost();
+    const noFuse = getStake().noFuse;
+
+    const selCard = S.shopMode === 'card' && S.shopSel !== null ? S.shopCards[S.shopSel] : null;
+    const anyTargeting = !!selCard || S.shopMode === 'burn' || S.shopMode === 'clone' || S.shopMode === 'fuse';
+
+    const isUpgraded = t => t.mods.length > 0 || t.wild || t.letter.length >= 2 || t.val > (LETTERS[t.letter] ? LETTERS[t.letter][0] : 20);
+
+    const groups = new Map();
+    for (const t of S.bag) {
+      if (t.lead) continue;
+      const k = letterKey(t);
+      if (!groups.has(k)) groups.set(k, []);
+      groups.get(k).push(t);
+    }
+    const stackKeySort = (k) => (k === '?' ? '~~' : k.length === 1 ? '0' + k : '1' + k);
+    const sortGroup = (arr) => arr.slice().sort((a, b) => b.mods.length - a.mods.length || b.val - a.val);
+    const allStacks = [...groups.entries()].map(([key, list]) => {
+      const sorted = sortGroup(list);
+      const rep = sorted[0];
+      return {
+        key,
+        list,
+        tile: rep,
+        count: list.length,
+        upgraded: list.some(isUpgraded),
+        combo: !rep.wild && !rep.lead && rep.letter.length >= 2,
+        vowel: !rep.wild && 'AEIOU'.includes(rep.letter),
+        high: list.some(t => t.val >= 30)
+      };
+    });
+
+    const canTargetStack = (st) => {
+      const rep = st.tile;
+      if (selCard) {
+        if (rep.wild) return false;
+        if (selCard.item.id === 'wild_self') return countWildsInBag() < MAX_WILD_TILES;
+        if (st.list.some(t => t.mods.includes('wild_left') || t.mods.includes('wild_right'))) return false;
+        if (selCard.item.id === 'wild_left' || selCard.item.id === 'wild_right') {
+          return !st.list.some(t => t.mods.length > 0);
+        }
+        return true;
+      }
+      if (S.shopMode === 'clone') return !rep.wild;
+      if (S.shopMode === 'fuse') {
+        if (!S.fuseFirstUid) return !rep.wild && rep.letter.length < 3;
+        const first = S.bag.find(t => t.uid === S.fuseFirstUid);
+        if (!first) return !rep.wild && rep.letter.length < 3;
+        if (st.list.some(t => t.uid === first.uid)) {
+          return !first.wild && first.letter.length * 2 <= 3 &&
+            S.bag.some(t => t.uid !== first.uid && letterKey(t) === letterKey(first));
+        }
+        return !rep.wild && first.letter.length + rep.letter.length <= 3;
+      }
+      if (S.shopMode === 'burn') return S.bag.length > MIN_BAG_SIZE;
+      return false;
+    };
+
+    const upStacks = allStacks.filter(s => s.upgraded).sort((a, b) => stackKeySort(a.key).localeCompare(stackKeySort(b.key)));
+    const comboStacks = allStacks.filter(s => s.combo).sort((a, b) => stackKeySort(a.key).localeCompare(stackKeySort(b.key)));
+    const vowelStacks = allStacks.filter(s => s.vowel).sort((a, b) => stackKeySort(a.key).localeCompare(stackKeySort(b.key)));
+    const highStacks = allStacks.filter(s => s.high).sort((a, b) => b.tile.val - a.tile.val || stackKeySort(a.key).localeCompare(stackKeySort(b.key)));
+    const allSortedStacks = [...allStacks].sort((a, b) => (b.upgraded - a.upgraded) || stackKeySort(a.key).localeCompare(stackKeySort(b.key)));
+
+    let shownStacks;
+    if (S.wbFilter === 'upgraded') shownStacks = upStacks;
+    else if (S.wbFilter === 'combos') shownStacks = comboStacks;
+    else if (S.wbFilter === 'vowels') shownStacks = vowelStacks;
+    else if (S.wbFilter === 'high') shownStacks = highStacks;
+    else shownStacks = allSortedStacks;
+
+    const wbTitleHtml = `Letter Stacks (${upStacks.length} upgraded · ${S.bag.length} tiles · ${countWildsInBag()}/${MAX_WILD_TILES} Wilds)`;
+    const wbFiltersHtml = `
+      <button class="wb-filter ${S.wbFilter === 'all' ? 'active' : ''}" data-act="wbFilter" data-arg="all">All Letters (${allStacks.length})</button>
+      <button class="wb-filter ${S.wbFilter === 'upgraded' ? 'active' : ''}" data-act="wbFilter" data-arg="upgraded">Upgraded (${upStacks.length})</button>
+      <button class="wb-filter ${S.wbFilter === 'combos' ? 'active' : ''}" data-act="wbFilter" data-arg="combos">Combos (${comboStacks.length})</button>
+      <button class="wb-filter ${S.wbFilter === 'vowels' ? 'active' : ''}" data-act="wbFilter" data-arg="vowels">Vowels (${vowelStacks.length})</button>
+      <button class="wb-filter ${S.wbFilter === 'high' ? 'active' : ''}" data-act="wbFilter" data-arg="high">High Score (${highStacks.length})</button>
+    `;
+    const wbTilesHtml = shownStacks.length
+      ? shownStacks.map(st => {
+          const ok = anyTargeting ? canTargetStack(st) : false;
+          return tileHtml(st.tile, { pickable: ok, unpickable: anyTargeting && !ok, stackCount: st.count });
+        }).join('')
+      : '<span style="color:#cbb282;font-style:italic">No letter stacks in this filter yet.</span>';
+
+    const cardsHtml = S.shopCards.map((c, idx) => {
+      const u = c.item;
+      const rm = RARITY_META[u.rarity || 'common'];
+      const isSel = S.shopMode === 'card' && S.shopSel === idx;
+      const cant = S.gold < c.cost;
+      return `
+        <div class="scard cat-${u.cat} ${rm.cls} ${c.sold ? 'sold' : ''} ${isSel ? 'selected' : ''}">
+          <div class="scard-head-row">
+            <span class="scard-cat">${CAT_LABELS[u.cat]}</span>
+            <span class="rar-pill ${rm.cls}">${rm.label}</span>
+          </div>
+          <div class="scard-top">
+            <span class="scard-ico">${u.icon}</span>
+            <span class="scard-name">${esc(u.name)}</span>
+          </div>
+          <div class="scard-desc">${esc(u.short)}</div>
+          <div class="scard-foot">
+            <span style="font-family:Cinzel,serif;font-weight:900;color:#7a5512">$${c.cost}</span>
+            ${c.sold ? `<span style="font-family:Cinzel,serif;font-weight:900;font-size:11px;color:#b5301c">FORGED</span>` : `<button class="btn mini ${isSel ? 'lapis' : 'gold'}" data-act="pickCard" data-arg="${idx}" ${cant ? 'disabled' : ''}>${isSel ? 'Cancel' : 'Select'}</button>`}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    let guideMsg = '<b>✨ Everything Stacks!</b> Mix +Score, Multiply, Replay, Light, Clone &amp; Wild on any letter — forges apply to <b>ALL copies</b>! (Burn, Fuse &amp; Forge Combo affect 1 copy.)';
+    if (selCard) {
+      guideMsg = selCard.item.id === 'forge_combo'
+        ? `<b>Ready (${esc(selCard.item.name)}):</b> Tap a letter stack on the Workbench to turn <b>1 copy</b> into a digraph/trigraph (keeps all existing forges)!`
+        : `<b>Ready (${esc(selCard.item.name)} — ${esc(selCard.item.short)}):</b> Tap ANY letter stack on the Workbench — <b>stacks on top of existing upgrades</b> across ALL copies!`;
+    } else if (S.shopMode === 'burn') {
+      guideMsg = `<b>🔥 Burn Tile ($${burnCost}):</b> Tap ANY letter stack on the Workbench to permanently remove <b>1 copy</b> from your bag! (Min ${MIN_BAG_SIZE} tiles.)`;
+    } else if (S.shopMode === 'clone') {
+      guideMsg = `<b>Clone +1 ($${cloneCost}):</b> Tap a non-wild stack on the Workbench to add <b>1 clean copy</b> to your bag (no upgrades)!`;
+    } else if (S.shopMode === 'fuse') {
+      if (!S.fuseFirstUid) {
+        guideMsg = `<b>Fuse 2 Tiles ($${fuseCost}):</b> Tap the FIRST tile on the Workbench (1–2 letters, non-wild).`;
+      } else {
+        const fTile = S.bag.find(t => t.uid === S.fuseFirstUid);
+        const canDoubleSame = fTile && !fTile.wild && fTile.letter.length * 2 <= 3 &&
+          S.bag.filter(t => t.uid !== fTile.uid && letterKey(t) === letterKey(fTile)).length > 0;
+        guideMsg = canDoubleSame
+          ? `<b>Fusing with “${esc(fTile.letter)}”:</b> Tap a SECOND tile (total ≤ 3 letters) — or tap <b>${esc(fTile.letter)}</b> again to make <b>${esc(fTile.letter + fTile.letter)}</b>!`
+          : `<b>Fusing with “${esc(fTile ? fTile.letter : '')}”:</b> Now tap a SECOND tile (total ≤ 3 letters) to combine scores &amp; upgrades!`;
+      }
+    }
+
+    const auditPreviewHtml = previewAudit
+      ? (nextSpec.isAudit
+          ? `<div class="audit-banner"><b>⚔️ NEXT STAGE · AUDIT — ${esc(previewAudit.name)}:</b> ${esc(previewAudit.desc)}</div>`
+          : `<div class="audit-banner shop-audit-preview"><b>🛡️ UPCOMING TERRACE ${nextT + 1} AUDIT (Vigil ${nextS + 1} is next) — ${esc(previewAudit.name)}:</b> ${esc(previewAudit.desc)}</div>`)
+      : '';
+
+    return `
+      ${renderHud(spec)}
+      <div class="shop-wrap">
+        <div class="shop-head">
+          <div>
+            <div class="shop-title">The Tile Forge (Shop ${S.shopNum})</div>
+            <div class="shop-sub">Next: <b>${esc(nextSpec.label)}</b> · Goal <b>${fmtC(nextSpec.goal)}</b> · Gold <b>$${S.gold}</b></div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn gold mini" data-act="reroll" ${S.gold < rerollCost ? 'disabled' : ''}>Reroll $${rerollCost}</button>
+            <button class="btn ${nextSpec.isAudit ? 'cinnabar' : 'verd'} mini" data-act="nextStage">Start ${esc(nextSpec.label)} ›</button>
+          </div>
+        </div>
+
+        ${auditPreviewHtml}
+
+        <div class="info-strip ${anyTargeting ? 'demo' : ''}">
+          <div>${guideMsg}</div>
+        </div>
+
+        <div class="shop-body">
+          <div class="shop-cards">${cardsHtml}</div>
+
+          <div class="workbench">
+            <div class="wb-head">
+              <div>
+                <div class="wb-title">${wbTitleHtml}</div>
+                <div class="wb-filters" style="margin-top:4px">
+                  ${wbFiltersHtml}
+                </div>
+              </div>
+              <div class="wb-crafts">
+                <button class="btn mini ${S.shopMode === 'burn' ? 'lapis' : 'cinnabar'}" data-act="startBurn" ${S.gold < burnCost || S.bag.length <= MIN_BAG_SIZE ? 'disabled' : ''}>${S.shopMode === 'burn' ? 'Cancel Burn' : `🔥 Burn Tile ($${burnCost})`}</button>
+                <button class="btn mini ${S.shopMode === 'clone' ? 'lapis' : 'verd'}" data-act="startClone" ${S.gold < cloneCost ? 'disabled' : ''}>${S.shopMode === 'clone' ? 'Cancel Clone' : `📑 Clone +1 ($${cloneCost})`}</button>
+                <button class="btn mini ${S.shopMode === 'fuse' ? 'lapis' : 'gold'}" data-act="startFuse" ${noFuse || S.gold < fuseCost ? 'disabled' : ''}>${noFuse ? '🔒 Fuse Locked' : S.shopMode === 'fuse' ? 'Cancel Fuse' : `🔗 Fuse 2 Tiles ($${fuseCost})`}</button>
+              </div>
+            </div>
+            <div class="wb-tiles">
+              ${wbTilesHtml}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function render() {
+    renderNav();
+    const app = document.getElementById('app');
+    const main = document.getElementById('ws-main');
+    if (!app || !main) return;
+    app.classList.toggle('phase-shop', S.phase === 'shop');
+    app.classList.toggle('boss-stage', S.phase === 'play' && isAudit());
+    app.classList.toggle('scale-broken', !!S.broken);
+    const spec = stageSpec(S.terrace, S.stageInTerrace, S.audit);
+    main.innerHTML = S.phase === 'shop' ? renderShop(spec) : renderPlay(spec);
+  }
+
+  function handleAction(act, arg) {
+    switch (act) {
+      case 'closeModal': closeModal(); pendingComboCtx = null; return;
+      case 'rules': openRules(); return;
+      case 'menu': openMenu(); return;
+      case 'setGoalScale': setGoalScale(+arg); SFX.pick(); return;
+      case 'pickStake': openMenu(arg); SFX.pick(); return;
+      case 'applyStake': {
+        activeStakeId = STAKE_MAP[menuStakeId] ? menuStakeId : 'white';
+        writeStorage(LS_STAKE_KEY, activeStakeId);
+        closeModal();
+        hideBeatitude();
+        initState();
+        SFX.chord();
+        render();
+        showToast(`${getStake().icon} Started ${getStake().name}!`);
+        return;
+      }
+      case 'demoCombo': loadDemoCombo(); return;
+      case 'addGold': S.gold += 20; SFX.coin(); render(); return;
+      case 'restart': closeModal(); hideBeatitude(); initState(); render(); return;
+      case 'retryStage': closeModal(); startStage(S.terrace, S.stageInTerrace); render(); return;
+      case 'endless': closeModal(); S.demoBanner = null; genShop(); S.phase = 'shop'; render(); return;
+      case 'inscribe': inscribe(); return;
+      case 'clear': clearLine(); return;
+      case 'shift': shiftLine(+arg); return;
+      case 'sort': S.sortMode = S.sortMode === 'az' ? 'val' : 'az'; sortHandArr(S.hand, S.sortMode); SFX.pick(); render(); return;
+      case 'startSwap':
+        if (S.busy || S.broken || S.phase !== 'play' || S.swapsLeft <= 0) return;
+        if (!S.hand.length) {
+          SFX.buzz();
+          showToast('No tiles on your rack to swap — move one down from the board first!');
+          return;
+        }
+        S.swapSet = new Set();
+        SFX.pick();
+        render();
+        return;
+      case 'cancelSwap': S.swapSet = null; render(); return;
+      case 'swapAll': {
+        if (S.busy || S.broken || S.phase !== 'play' || S.swapsLeft <= 0) return;
+        if (!S.hand.length) {
+          SFX.buzz();
+          showToast('No tiles on your rack to swap — move one down from the board first!');
+          return;
+        }
+        const swapped = S.hand.length;
+        const kept = S.line.filter(Boolean).length;
+        S.hand = [];
+        S.swapSet = null;
+        S.swapsLeft--;
+        drawTilesFromState(S, 7);
+        sortHandArr(S.hand, S.sortMode);
+        SFX.whoosh();
+        showToast(
+          kept > 0
+            ? `Swapped ${swapped} rack tile${swapped === 1 ? '' : 's'} (${kept} kept on board · ${S.swapsLeft} swap${S.swapsLeft === 1 ? '' : 's'} left)`
+            : `Swapped all ${swapped} tiles! (${S.swapsLeft} swap${S.swapsLeft === 1 ? '' : 's'} left)`
+        );
+        render();
+        return;
+      }
+      case 'confirmSwap': {
+        if (!S.swapSet || !S.swapSet.size) return;
+        const out = S.swapSet;
+        S.hand = S.hand.filter(t => !out.has(t.uid));
+        S.swapSet = null;
+        S.swapsLeft--;
+        drawTilesFromState(S, 7);
+        sortHandArr(S.hand, S.sortMode);
+        SFX.whoosh();
+        render();
+        return;
+      }
+      case 'bag': {
+        const sorted = [...S.bag].sort((a, b) => (a.wild ? 1 : 0) - (b.wild ? 1 : 0) || a.letter.localeCompare(b.letter));
+        showModal(
+          `Your Bag (${S.draw.length} left to draw / ${S.bag.length} total)`,
+          `<div class="bag-grid">${sorted.map(t => tileHtml(t)).join('')}</div>`,
+          `<button class="btn gold" data-act="closeModal">Close</button>`
+        );
+        return;
+      }
+      case 'pickCard': {
+        const idx = +arg;
+        if (S.shopMode === 'card' && S.shopSel === idx) {
+          S.shopSel = null;
+          S.shopMode = null;
+        } else {
+          S.shopSel = idx;
+          S.shopMode = 'card';
+          S.fuseFirstUid = null;
+        }
+        SFX.pick();
+        render();
+        return;
+      }
+      case 'pickForgeCombo': {
+        const ctx = pendingComboCtx;
+        pendingComboCtx = null;
+        closeModal();
+        if (!ctx) return;
+        const card = S.shopCards[ctx.cardIdx];
+        const tile = S.bag.find(t => t.uid === ctx.tileUid);
+        const combo = ctx.choices[+arg];
+        if (!card || card.sold || !tile || !combo || S.gold < card.cost) return;
+        S.gold -= card.cost;
+        card.sold = true;
+        S.shopSel = null;
+        S.shopMode = null;
+        tile.letter = combo.letter;
+        tile.wild = false;
+        tile.val = Math.max(tile.val, combo.val);
+        SFX.win();
+        showToast(`Forged into ${combo.letter} (${fmtC(tile.val)} pts)!`);
+        render();
+        return;
+      }
+      case 'startBurn': {
+        if (S.shopMode === 'burn') {
+          S.shopMode = null;
+        } else {
+          S.shopMode = 'burn';
+          S.shopSel = null;
+          S.fuseFirstUid = null;
+        }
+        SFX.pick();
+        render();
+        return;
+      }
+      case 'startClone': {
+        if (S.shopMode === 'clone') {
+          S.shopMode = null;
+        } else {
+          S.shopMode = 'clone';
+          S.shopSel = null;
+          S.fuseFirstUid = null;
+        }
+        SFX.pick();
+        render();
+        return;
+      }
+      case 'startFuse': {
+        if (getStake().noFuse) {
+          SFX.buzz();
+          showToast('Fuse 2 Tiles is locked on this Stake!');
+          return;
+        }
+        if (S.shopMode === 'fuse') {
+          S.shopMode = null;
+          S.fuseFirstUid = null;
+        } else {
+          S.shopMode = 'fuse';
+          S.shopSel = null;
+          S.fuseFirstUid = null;
+        }
+        SFX.pick();
+        render();
+        return;
+      }
+      case 'wbFilter': S.wbFilter = arg; SFX.pick(); render(); return;
+      case 'reroll': {
+        const cost = getRerollCost();
+        if (S.gold < cost) return;
+        S.gold -= cost;
+        S.shopNum--;
+        genShop();
+        SFX.whoosh();
+        render();
+        return;
+      }
+      case 'nextStage': {
+        if (S.stageInTerrace === 2) {
+          if (S.audit && S.audit.id === 'ban_word' && S.audit.bannedWord) {
+            S.wordCounts[S.audit.bannedWord] = 0;
+            S.lastDynamicAuditKey = 'W:' + S.audit.bannedWord;
+          } else if (S.audit && S.audit.id === 'censor_tile' && S.audit.censoredKey) {
+            S.tileCounts[S.audit.censoredKey] = 0;
+            S.lastDynamicAuditKey = 'T:' + S.audit.censoredKey;
+          }
+          S.audit = S.nextAudit || popAuditFromBag(true);
+          S.nextAudit = popAuditFromBag(true);
+          startStage(S.terrace + 1, 0);
+        } else {
+          startStage(S.terrace, S.stageInTerrace + 1);
+        }
+        render();
+        return;
+      }
+    }
+  }
+
+  function hideTip() {
+    const t = document.getElementById('tip');
+    if (t) t.classList.remove('show');
+  }
+
+  function showTipFor(el) {
+    const t = document.getElementById('tip');
+    if (!t || !el) return;
+    const title = el.dataset.tipTitle || '';
+    const text = el.dataset.tipText || '';
+    if (!text) { hideTip(); return; }
+    t.innerHTML = `${title ? `<b>${esc(title)}</b>` : ''}${esc(text)}`;
+    const r = el.getBoundingClientRect();
+    t.classList.add('show');
+    const tw = t.offsetWidth || 220;
+    const th = t.offsetHeight || 60;
+    const left = Math.max(8, Math.min(window.innerWidth - tw - 8, r.left + r.width / 2 - tw / 2));
+    const top = r.top - th - 8 >= 8 ? r.top - th - 8 : Math.min(window.innerHeight - th - 8, r.bottom + 8);
+    t.style.left = left + 'px';
+    t.style.top = top + 'px';
+  }
+
+  function bindEvents() {
+    const app = document.getElementById('app');
+    if (!app) return;
+
+    const clearDragVisuals = () => {
+      document.querySelectorAll('.drag-over, .dragging').forEach(el => {
+        el.classList.remove('drag-over', 'dragging');
+      });
+    };
+
+    app.addEventListener('input', e => {
+      if (e.target && e.target.id === 'tf-scale-slider') {
+        setGoalScale(+e.target.value);
+      }
+    });
+
+    app.addEventListener('click', e => {
+      if (suppressNextClick) {
+        suppressNextClick = false;
+        return;
+      }
+      if (document.activeElement && document.activeElement.tagName === 'BUTTON') {
+        document.activeElement.blur();
+      }
+      const actEl = e.target.closest('[data-act]');
+      if (actEl) {
+        if (actEl.disabled) return;
+        handleAction(actEl.dataset.act, actEl.dataset.arg);
+        return;
+      }
+      if (e.target.id === 'modal') {
+        closeModal();
+        pendingComboCtx = null;
+        return;
+      }
+      const tileEl = e.target.closest('[data-tf-tile]');
+      if (tileEl) {
+        const uid = +tileEl.dataset.tfTile;
+        if (S.phase === 'shop') {
+          if (S.shopMode === 'card' && S.shopSel !== null) applyCardToTile(S.shopSel, uid);
+          else if (S.shopMode === 'burn' || S.shopMode === 'clone' || S.shopMode === 'fuse') applyWorkbenchCraft(uid);
+          else showToast('Pick a card (or Burn/Clone/Fuse) first!');
+          return;
+        }
+        if (tileEl.closest('.bag-grid')) return;
+        placeOrReturnTile(uid);
+      }
+    });
+
+    // Desktop HTML5 Drag & Drop (Play mode)
+    app.addEventListener('dragstart', e => {
+      if (S.phase !== 'play' || S.busy || S.broken || S.swapSet) {
+        e.preventDefault();
+        return;
+      }
+      const tileEl = e.target.closest('[data-tf-tile][draggable="true"]');
+      if (!tileEl) return;
+      dragUid = +tileEl.dataset.tfTile;
+      hideTip();
+      tileEl.classList.add('dragging');
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', String(dragUid));
+      }
+    });
+
+    app.addEventListener('dragover', e => {
+      if (dragUid === null || S.phase !== 'play' || S.busy || S.broken || S.swapSet) return;
+      const slotEl = e.target.closest('.vcell[data-slot-idx]');
+      const rackTileEl = !slotEl ? e.target.closest('.rack-tiles [data-tf-tile]') : null;
+      const rackEl = !slotEl ? e.target.closest('[data-drop-rack]') : null;
+      if (!slotEl && !rackEl) return;
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+      clearDragVisuals();
+      const srcEl = document.querySelector(`[data-tf-tile="${dragUid}"]`);
+      if (srcEl) srcEl.classList.add('dragging');
+      if (slotEl) slotEl.classList.add('drag-over');
+      else if (rackTileEl && +rackTileEl.dataset.tfTile !== dragUid) rackTileEl.classList.add('drag-over');
+      else if (rackEl) rackEl.classList.add('drag-over');
+    });
+
+    app.addEventListener('drop', e => {
+      if (dragUid === null || S.phase !== 'play' || S.busy || S.broken || S.swapSet) return;
+      const slotEl = e.target.closest('.vcell[data-slot-idx]');
+      const rackTileEl = !slotEl ? e.target.closest('.rack-tiles [data-tf-tile]') : null;
+      const rackEl = !slotEl ? e.target.closest('[data-drop-rack]') : null;
+      if (!slotEl && !rackEl) return;
+      e.preventDefault();
+      const uid = dragUid;
+      dragUid = null;
+      clearDragVisuals();
+      if (slotEl) dropTileOnSlot(uid, +slotEl.dataset.slotIdx);
+      else if (rackEl) dropTileOnRack(uid, rackTileEl ? +rackTileEl.dataset.tfTile : null);
+    });
+
+    app.addEventListener('dragend', () => {
+      dragUid = null;
+      clearDragVisuals();
+    });
+
+    // Touch Drag & Drop fallback (strictly touch pointerType)
+    app.addEventListener('pointerdown', e => {
+      if (e.pointerType !== 'touch' || S.phase !== 'play' || S.busy || S.broken || S.swapSet) return;
+      const tileEl = e.target.closest('[data-tf-tile][draggable="true"]');
+      if (!tileEl || tileEl.closest('.bag-grid')) return;
+      touchDrag = {
+        pointerId: e.pointerId,
+        uid: +tileEl.dataset.tfTile,
+        startX: e.clientX,
+        startY: e.clientY,
+        srcEl: tileEl,
+        active: false,
+        ghost: null
+      };
+    });
+
+    app.addEventListener('pointermove', e => {
+      if (!touchDrag || e.pointerType !== 'touch' || e.pointerId !== touchDrag.pointerId) return;
+      const dx = e.clientX - touchDrag.startX;
+      const dy = e.clientY - touchDrag.startY;
+      if (!touchDrag.active) {
+        if (Math.hypot(dx, dy) < 10) return;
+        touchDrag.active = true;
+        hideTip();
+        const ghost = touchDrag.srcEl.cloneNode(true);
+        ghost.className = touchDrag.srcEl.className + ' drag-ghost';
+        ghost.style.width = touchDrag.srcEl.offsetWidth + 'px';
+        ghost.style.height = touchDrag.srcEl.offsetHeight + 'px';
+        document.body.appendChild(ghost);
+        touchDrag.ghost = ghost;
+        touchDrag.srcEl.classList.add('dragging');
+      }
+      e.preventDefault();
+      if (touchDrag.ghost) {
+        touchDrag.ghost.style.left = e.clientX + 'px';
+        touchDrag.ghost.style.top = e.clientY + 'px';
+      }
+      clearDragVisuals();
+      touchDrag.srcEl.classList.add('dragging');
+      const under = document.elementFromPoint(e.clientX, e.clientY);
+      const slotEl = under ? under.closest('.vcell[data-slot-idx]') : null;
+      const rackTileEl = !slotEl && under ? under.closest('.rack-tiles [data-tf-tile]') : null;
+      const rackEl = !slotEl && under ? under.closest('[data-drop-rack]') : null;
+      if (slotEl) slotEl.classList.add('drag-over');
+      else if (rackTileEl && +rackTileEl.dataset.tfTile !== touchDrag.uid) rackTileEl.classList.add('drag-over');
+      else if (rackEl) rackEl.classList.add('drag-over');
+    });
+
+    const finishTouchDrag = (e, applyDrop) => {
+      if (!touchDrag || e.pointerId !== touchDrag.pointerId) return;
+      const td = touchDrag;
+      touchDrag = null;
+      if (td.ghost) td.ghost.remove();
+      clearDragVisuals();
+      if (!td.active) return;
+      e.preventDefault();
+      suppressNextClick = true;
+      setTimeout(() => { suppressNextClick = false; }, 120);
+      if (!applyDrop) return;
+      const under = document.elementFromPoint(e.clientX, e.clientY);
+      const slotEl = under ? under.closest('.vcell[data-slot-idx]') : null;
+      const rackTileEl = !slotEl && under ? under.closest('.rack-tiles [data-tf-tile]') : null;
+      const rackEl = !slotEl && under ? under.closest('[data-drop-rack]') : null;
+      if (slotEl) dropTileOnSlot(td.uid, +slotEl.dataset.slotIdx);
+      else if (rackEl) dropTileOnRack(td.uid, rackTileEl ? +rackTileEl.dataset.tfTile : null);
+    };
+    app.addEventListener('pointerup', e => finishTouchDrag(e, true));
+    app.addEventListener('pointercancel', e => finishTouchDrag(e, false));
+
+    app.addEventListener('pointerover', e => {
+      if (e.pointerType !== 'mouse') return;
+      const el = e.target.closest('[data-tip-text]');
+      if (el) showTipFor(el);
+      else hideTip();
+    });
+
+    app.addEventListener('pointerout', e => {
+      if (e.pointerType !== 'mouse') return;
+      if (!e.relatedTarget || !e.relatedTarget.closest || !e.relatedTarget.closest('[data-tip-text]')) {
+        hideTip();
+      }
+    });
+
+    window.addEventListener('keydown', e => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (document.getElementById('beatific-layer').classList.contains('open')) {
+        return;
+      }
+      if (document.getElementById('modal').classList.contains('open')) {
+        if (e.key === 'Escape') { closeModal(); pendingComboCtx = null; }
+        return;
+      }
+      if (S.broken || S.phase !== 'play' || S.busy || S.swapSet) return;
+      if (e.key === 'Enter') { e.preventDefault(); inscribe(); }
+      else if (e.key === 'Backspace') {
+        e.preventDefault();
+        for (let i = 4; i >= 0; i--) {
+          if (S.line[i]) { placeOrReturnTile(S.line[i].uid); break; }
+        }
+      } else if (e.key === 'Escape') {
+        clearLine();
+      } else if (/^[a-zA-Z]$/.test(e.key)) {
+        const L = e.key.toUpperCase();
+        const match = S.hand.find(t => !t.wild && !t.lead && t.letter === L)
+          || S.hand.find(t => !t.wild && !t.lead && t.letter[0] === L)
+          || S.hand.find(t => t.wild);
+        if (match) placeOrReturnTile(match.uid);
+      }
+    });
+  }
+
+  initState();
+  bindEvents();
+  render();
+
+  return {
+    restart() { handleAction('restart'); },
+    handleAction,
+    dropTileOnSlot,
+    dropTileOnRack,
+    applyCardToTile,
+    applyWorkbenchCraft,
+    genShop,
+    UPGRADES,
+    STAKES,
+    MAX_WILD_TILES,
+    maybeScheduleAntiSpamAudit,
+    setGoalScale,
+    openMenu,
+    stageSpec,
+    loadDemoCombo,
+    wildFlagsForLine,
+    auditCheck,
+    computeTriggers,
+    computeScore,
+    startStage,
+    _getState: () => S
+  };
+})();
