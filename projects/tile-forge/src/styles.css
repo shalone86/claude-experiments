@@ -3331,3 +3331,12 @@ button:disabled {
 #whiteout.on { opacity: 1; }
 #whiteout.fade { opacity: 0; transition: opacity 2.4s ease-out; }
 @media (prefers-reduced-motion: reduce) { #app.glitching { animation: none; } }
+
+
+/* ---- score smoke: drawn over the page but under the word line (z-index 1), so it rises from behind the tiles ---- */
+.score-smoke {
+  position: fixed; z-index: 0; pointer-events: none; border-radius: 50%;
+  background: radial-gradient(circle, rgba(168, 156, 140, 0.62), rgba(120, 108, 94, 0.3) 45%, rgba(120, 108, 94, 0) 70%);
+  filter: blur(4px);
+}
+@media (prefers-reduced-motion: reduce) { .score-smoke { display: none; } }

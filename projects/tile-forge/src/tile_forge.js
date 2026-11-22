@@ -1198,6 +1198,7 @@ const TileForge = (() => {
     }
 
     S.busy = true;
+    const spec0 = stageSpec(S.terrace, S.stageInTerrace, S.audit);
     const sc = computeScore(v, false);
     S.calcOverride = sc.baseScore;
     render();
@@ -1212,6 +1213,7 @@ const TileForge = (() => {
         floatAt(el, st.label, st.cls);
       }
       S.calcOverride = st.wordScore;
+      setScoreSmoke(scoreSmokeLevel(st.wordScore, spec0.goal - S.score));
       const totEl = document.getElementById('tf-word-score');
       if (totEl) totEl.textContent = fmt(st.wordScore);
       if (st.cls === 'mult') SFX.mult(i);
@@ -1237,6 +1239,7 @@ const TileForge = (() => {
       const scoreEl = document.getElementById('tf-word-score');
       if (scoreEl) scoreEl.textContent = '∞';
       MUSIC.setScene('end');
+      setScoreSmoke(0);
       const reveal = await glitchToWhite();
       S.busy = false;
       S.calcOverride = null;
@@ -1878,6 +1881,12 @@ const TileForge = (() => {
     app.classList.toggle('scale-broken', !!S.broken);
     const spec = stageSpec(S.terrace, S.stageInTerrace, S.audit);
     main.innerHTML = S.phase === 'shop' ? renderShop(spec) : renderPlay(spec);
+    // smoke rises behind the word as its score passes what you still need
+    if (S.phase === 'play' && !S.busy && S.calcOverride === null) {
+      const v = inspectLine(S.line, wildFlagsForLine, auditCheck);
+      const sc = v.valid ? computeScore(v, true) : null;
+      setScoreSmoke(sc ? scoreSmokeLevel(sc.total, spec.goal - S.score) : 0);
+    } else if (S.phase !== 'play') setScoreSmoke(0);
     if (!sceneOpen()) MUSIC.setScene(S.phase === 'shop' ? 'shop' : isAudit() ? 'audit' : 'play');
     setTimeout(runCoach, 0);
   }

@@ -199,3 +199,52 @@ function glitchToWhite(duration = 2800) {
     }, 70);
   });
 }
+
+// ---- Score smoke: the further a word goes past what you need, the higher smoke rises from
+// behind the tiles (like Balatro's flames). Level 1 is reaching the goal, then each extra
+// power of ten climbs higher, and level 5 (a million over) fills the screen. ----
+function scoreSmokeLevel(total, need) {
+  if (!(total >= need) || need < 0) return 0;
+  if (!isFinite(total)) return 5;
+  const over = total - need;
+  return over < 1000 ? 1 : over < 1e4 ? 2 : over < 1e5 ? 3 : over < 1e6 ? 4 : 5;
+}
+const SMOKE_RISE = [0, 120, 230, 360, 520];
+let smokeLevel = 0, smokeTimer = 0;
+function setScoreSmoke(level) {
+  if (level === smokeLevel) return;
+  smokeLevel = level;
+  clearInterval(smokeTimer);
+  if (!level) return;
+  const puff = () => {
+    const line = document.querySelector('.verse-line');
+    if (!line || document.hidden) return;
+    if (document.querySelectorAll('.score-smoke').length > 70) return; // never let puffs pile up
+    const r = line.getBoundingClientRect();
+    if (!r.width) return;
+    const full = smokeLevel >= 5;
+    const rise = full ? r.top + 160 : SMOKE_RISE[smokeLevel];
+    const count = smokeLevel >= 4 ? 2 : 1;
+    for (let i = 0; i < count; i++) {
+      const d = document.createElement('div');
+      d.className = 'score-smoke';
+      const size = 46 + smokeLevel * 14;
+      d.style.width = d.style.height = size + 'px';
+      // at full height the smoke spreads out past the word too
+      const spread = full ? window.innerWidth : r.width;
+      const x0 = full ? 0 : r.left;
+      d.style.left = (x0 + Math.random() * spread) + 'px';
+      d.style.top = (r.top + r.height * (0.35 + Math.random() * 0.4)) + 'px';
+      document.body.appendChild(d);
+      const dx = (Math.random() - 0.5) * (40 + smokeLevel * 30);
+      const op = Math.min(0.62, 0.3 + smokeLevel * 0.07);
+      d.animate([
+        { transform: 'translate(-50%,-50%) scale(.45)', opacity: 0 },
+        { transform: `translate(calc(-50% + ${dx * 0.25}px), calc(-50% - ${rise * 0.2}px)) scale(1)`, opacity: op, offset: 0.2 },
+        { transform: `translate(calc(-50% + ${dx}px), calc(-50% - ${rise}px)) scale(${1.8 + smokeLevel * 0.35})`, opacity: 0 }
+      ], { duration: 1500 + rise * 2.4, easing: 'ease-out' }).onfinish = () => d.remove();
+    }
+  };
+  puff();
+  smokeTimer = setInterval(puff, Math.max(110, 260 - level * 30));
+}
