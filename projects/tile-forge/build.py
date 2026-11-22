@@ -15,7 +15,7 @@ def main():
     lex = LEX_PATH.read_text(encoding="utf-8").strip()
 
     js_parts = []
-    for name in ["audio.js", "core.js", "tile_forge.js"]:
+    for name in ["audio.js", "core.js", "scenes.js", "tile_forge.js"]:
         content = (SRC / name).read_text(encoding="utf-8")
         js_parts.append(f"// ==== {name} ====\n{content}")
     js_bundle = "\n\n".join(js_parts)

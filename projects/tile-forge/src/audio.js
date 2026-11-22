@@ -57,11 +57,11 @@ const SFX = {
 };
 
 // Music: the Scriptorium loops (src/audio), embedded at build time.
-// G gameplay · B shop · C audit · D choir swell (stage cleared) · E minor swell (out of words)
+// A home · G gameplay · B shop · C audit · D choir swell (one word clears the goal) · E minor swell (out of words)
 const MUSIC_SRC = /*__AUDIO__*/{};
 // Seconds of music in each loop before its reverb tail (4 bars at 80 bpm). The tail is mixed back
 // over the start so the last bar rings into the next pass instead of leaving a gap.
-const MUSIC_LOOP = { B: 12, C: 12, G: 12 };
+const MUSIC_LOOP = { A: 12, B: 12, C: 12, G: 12 };
 const MUSIC = {
   bufs: {}, ready: false, loading: null, cur: null, key: null, scene: 'play', vol: 1, bus: null,
   out(c) {
@@ -101,7 +101,7 @@ const MUSIC = {
   setScene(s) { if (s === this.scene) return; this.scene = s; this.update(); },
   update() {
     if (!this.ready) return;
-    const k = this.scene === 'shop' ? 'B' : this.scene === 'audit' ? 'C' : 'G';
+    const k = { home: 'A', shop: 'B', audit: 'C', end: null }[this.scene] ?? 'G';
     if (k !== this.key) this.play(k);
   },
   play(k, loop = true) {

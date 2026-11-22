@@ -112,7 +112,7 @@ const TileForge = (() => {
     power_word: 'Raises the whole word’s score to the power of 1.25.'
   };
   const ONE_COPY = new Set(['forge_combo', 'wild_self']);
-  const tipFor = (u) => TIPS[u.id] + (ONE_COPY.has(u.id) ? '' : ' Forges every copy of the letter you pick.');
+  const tipFor = (u) => TIPS[u.id] + (ONE_COPY.has(u.id) ? '' : ' Goes on every tile of the letter you pick.');
   // Forge colours: blue points, red multiply, purple replay, gold light and money, green tricks.
   const FORGE_COL = { pts: '#1f4fa3', mult: '#b5301c', echo: '#7b3ba8', gold: '#a8730f', green: '#2e846c' };
   const TAG_H = { big: 34, inline: 19, mini: 15 };
@@ -1222,6 +1222,7 @@ const TileForge = (() => {
 
     await sleep(340);
     S.score += sc.total;
+    if (sc.total > (S.bestScore || 0)) { S.bestScore = sc.total; S.bestWord = v.word; }
     S.gold += sc.goldGain;
     if (sc.clonedThisWord.length) {
       showToast(`Copied into your bag: ${sc.clonedThisWord.join(', ')}`);
@@ -1241,8 +1242,9 @@ const TileForge = (() => {
     S.busy = false;
 
     if (S.score >= spec.goal) {
-      SFX.win();
-      MUSIC.stinger('D');
+      // one word that covers the whole goal earns the choir and the censer (like Balatro's flames)
+      const oneWord = sc.total >= spec.goal;
+      if (oneWord) { MUSIC.stinger('D'); SFX.bell(); censerSweep(); } else SFX.win();
       const unusedBonus = Math.min(3, S.wordsLeft);
       const payout = spec.reward + unusedBonus;
       S.gold += payout;
@@ -1250,6 +1252,7 @@ const TileForge = (() => {
         openVictory(payout, unusedBonus, spec.reward);
       } else {
         showToast(`${spec.name} cleared! +$${payout} Gold`);
+        if (oneWord) { S.busy = true; render(); await sleep(1500); S.busy = false; }
         S.demoBanner = null;
         genShop();
         S.phase = 'shop';
@@ -1264,30 +1267,51 @@ const TileForge = (() => {
     render();
   }
 
-  function openVictory(payout, unusedBonus, baseReward = payout - unusedBonus) {
-    const st = getStake();
-    markStakeCleared(st.id);
-    showModal(
-      'All 7 Terraces Cleared!',
-      `<p>You overcame all 7 Terraces and 7 Audits of <b>Tile Forge</b> on <b>${st.icon} ${esc(st.name)}</b> (<b>${S.goalScalePct}%</b> Goal Scale)!</p>
-       <p>Reward: <b>+$${payout}</b> ($${baseReward} audit + $${unusedBonus} unused words). You now hold <b>$${S.gold}</b>.</p>
-       <p>Visit Shop 21 and climb into Endless Terraces, or open <b>⚙ Menu</b> to try a higher Stake!</p>`,
-      `<button class="btn gold" data-act="endless">Enter Shop 21 &amp; Continue Endless</button>
-       <button class="btn lapis" data-act="restart">New Run</button>`
-    );
+  function runStatsLine() {
+    return `Words played: ${S.wordsPlayed} · Best word: ${S.bestWord ? `“${esc(S.bestWord)}” ${fmtC(S.bestScore)}` : '—'}`;
+  }
+  function recordBest() {
+    const b = readBest();
+    if ((S.bestScore || 0) > (b.score || 0)) { b.score = S.bestScore; b.word = S.bestWord; }
+    b.terrace = Math.max(b.terrace || 0, S.terrace + 1);
+    saveBest(b);
+  }
+  function homeData() {
+    const st = getStake(), b = readBest();
+    return {
+      stake: `${st.icon} ${esc(st.short)} Stake`,
+      stats: b.score ? `Best word: “${esc(b.word || '')}” ${fmtC(b.score)} · Highest: Terrace ${b.terrace || 1}` : ''
+    };
+  }
+  function goHome() {
+    closeModal();
+    hideBeatitude();
+    hideScene();
+    initState();
+    render();
+    showScene('home', homeData());
+  }
+
+  function openVictory() {
+    markStakeCleared(getStake().id);
+    recordBest();
+    showScene('win', { stats: runStatsLine() });
+    SFX.bell();
+    MUSIC.stinger('D');
   }
 
   function openLoss() {
     const spec = stageSpec(S.terrace, S.stageInTerrace, S.audit);
+    recordBest();
     SFX.buzz();
+    if (S.terrace >= 7) {
+      // running out of words past the seventh terrace isn't a loss: the endless climb ends
+      showScene('rest', { stats: runStatsLine(), terrace: S.terrace + 1, beyond: S.terrace - 6 });
+      SFX.bell();
+      return;
+    }
+    showScene('lose', { stats: runStatsLine(), terrace: S.terrace + 1, scoreLine: `SCORE ${fmtC(S.score)} OF ${fmtC(spec.goal)}` });
     MUSIC.stinger('E');
-    showModal(
-      'Out of Words',
-      `<p>You scored <b>${fmt(S.score)}</b> of <b>${fmt(spec.goal)}</b> needed on ${esc(spec.label)}.</p>
-       <p>Tip: Shift high-score letters onto <b>🕯️ BRIGHT (×3)</b> with <b>‹ ›</b>, stack <b>Replay</b> + <b>2× / 3×</b>, or lower <b>Goal Scale</b> anytime in <b>⚙ Menu</b>!</p>`,
-      `<button class="btn gold" data-act="retryStage">Retry This Stage</button>
-       <button class="btn wood" data-act="restart">New Run</button>`
-    );
   }
 
   function loadDemoCombo() {
@@ -1438,6 +1462,7 @@ const TileForge = (() => {
         <div class="sandbox-row">
           <button class="btn mini violet" data-act="demoCombo">🧪 Demo ∞ Combo</button>
           <button class="btn mini gold" data-act="addGold">+$20 Gold</button>
+          <button class="btn mini wood" data-act="resetTips">Show first-time tips again</button>
         </div>
       </div>
     `;
@@ -1688,8 +1713,23 @@ const TileForge = (() => {
     const highStacks = allStacks.filter(s => s.high).sort((a, b) => b.tile.val - a.tile.val || stackKeySort(a.key).localeCompare(stackKeySort(b.key)) || b.tile.mods.length - a.tile.mods.length);
     const allSortedStacks = [...allStacks].sort((a, b) => (b.upgraded - a.upgraded) || stackKeySort(a.key).localeCompare(stackKeySort(b.key)) || b.tile.mods.length - a.tile.mods.length);
 
+    // A rough strength score: base points through every forge, so you can see which letter to build next.
+    const tilePower = (t) => {
+      const c = (id) => countMod(t, id);
+      let p = Math.max(1, t.val);
+      p *= Math.pow(2, c('mult_self_2')) * Math.pow(3, c('mult_self_3')) * (1 + c('replay_self')) * Math.pow(2, c('grow_2')) *
+        Math.pow(2, c('mult_word_2')) * Math.pow(3, c('mult_word_3')) * Math.pow(3, c('power_word')) * (c('light_self') ? 3 : 1);
+      p += 30 * (c('add_left_30') + c('add_right_30')) + 15 * c('gold_3');
+      p *= 1 + 0.5 * (c('mult_left_2') + c('mult_right_2')) + (c('mult_left_3') + c('mult_right_3')) + 1.5 * (c('mult_left_4') + c('mult_right_4')) +
+        0.6 * (c('replay_left') + c('replay_right')) + 0.5 * (c('light_left') + c('light_right')) + 1.5 * c('light_all') +
+        0.3 * (c('clone_self') + c('clone_left') + c('clone_right')) + 0.4 * (c('wild_left') + c('wild_right'));
+      return p;
+    };
+    const strongStacks = [...allStacks].sort((a, b) => tilePower(b.tile) - tilePower(a.tile));
+
     let shownStacks;
-    if (S.wbFilter === 'upgraded') shownStacks = upStacks;
+    if (S.wbFilter === 'strong') shownStacks = strongStacks;
+    else if (S.wbFilter === 'upgraded') shownStacks = upStacks;
     else if (S.wbFilter === 'combos') shownStacks = comboStacks;
     else if (S.wbFilter === 'vowels') shownStacks = vowelStacks;
     else if (S.wbFilter === 'high') shownStacks = highStacks;
@@ -1698,6 +1738,7 @@ const TileForge = (() => {
     const wbTitleHtml = `Your letters <small>${S.bag.length} tiles</small>`;
     const wbFiltersHtml = `
       <button class="wb-filter ${S.wbFilter === 'all' ? 'active' : ''}" data-act="wbFilter" data-arg="all">All</button>
+      <button class="wb-filter ${S.wbFilter === 'strong' ? 'active' : ''}" data-act="wbFilter" data-arg="strong" data-tip-title="Strongest" data-tip-text="Your letters from strongest to weakest, counting their points and forges.">Strongest</button>
       <button class="wb-filter ${S.wbFilter === 'upgraded' ? 'active' : ''}" data-act="wbFilter" data-arg="upgraded">Forged</button>
       <button class="wb-filter ${S.wbFilter === 'vowels' ? 'active' : ''}" data-act="wbFilter" data-arg="vowels">Vowels</button>
       ${comboStacks.length ? `<button class="wb-filter ${S.wbFilter === 'combos' ? 'active' : ''}" data-act="wbFilter" data-arg="combos">Pairs</button>` : ''}
@@ -1802,8 +1843,60 @@ const TileForge = (() => {
     app.classList.toggle('scale-broken', !!S.broken);
     const spec = stageSpec(S.terrace, S.stageInTerrace, S.audit);
     main.innerHTML = S.phase === 'shop' ? renderShop(spec) : renderPlay(spec);
-    MUSIC.setScene(S.phase === 'shop' ? 'shop' : isAudit() ? 'audit' : 'play');
+    if (!sceneOpen()) MUSIC.setScene(S.phase === 'shop' ? 'shop' : isAudit() ? 'audit' : 'play');
+    setTimeout(runCoach, 0);
   }
+
+  // ---- First-time hints: one at a time, only until you've done the thing ----
+  function pickCoach() {
+    const seen = (id) => coachSeen[id];
+    const audit = document.querySelector('.audit-banner');
+    const hover = lastPtr === 'mouse' && matchMedia('(hover: hover)').matches;
+    if (S.phase === 'play') {
+      const v = inspectLine(S.line, wildFlagsForLine, auditCheck);
+      if (!seen('tap')) {
+        if (!v.empty || S.wordsPlayed > 0) coachMark('tap');
+        else return { id: 'tap', sel: '.rack-tiles', above: true, text: 'Tap a letter to set it on the line.' };
+      }
+      if (!seen('play')) {
+        if (S.wordsPlayed > 0) coachMark('play');
+        else if (v.valid) return { id: 'play', sel: '.word-score-box', text: 'That’s a word! Tap the score to play it.' };
+        else return null;
+      }
+      if (!seen('candle')) {
+        if (S.wordsPlayed >= 4) coachMark('candle');
+        else return { id: 'candle', sel: '.candle-head.is-candle', gotIt: true,
+          text: 'A letter under the candle scores <span class="tt-light">×3</span>, and <span class="tt-light">×2</span> beside it. The candle moves after every word.' };
+      }
+      if (!seen('hold')) {
+        if (S.wordsPlayed >= 6) coachMark('hold');
+        else return { id: 'hold', sel: '.rack-tiles', above: true, gotIt: true,
+          text: hover ? 'Hover a letter to see its points and forges.' : 'Press and hold a letter to see its points and forges.' };
+      }
+      if (!seen('audit') && audit && isAudit()) return { id: 'audit', sel: '.audit-banner', gotIt: true, text: 'This is an Audit, the boss round. Its special rule is written here.' };
+      return null;
+    }
+    if (S.phase === 'shop') {
+      if (!seen('shop')) {
+        if (S.shopMode === 'card' || S.shopCards.some(c => c.sold)) coachMark('shop');
+        else return { id: 'shop', sel: '.shop-cards', text: 'Welcome to the Forge. Tap an upgrade to pick it. Its point shows which letter it powers up.' };
+      }
+      if (!seen('forge')) {
+        if (S.shopCards.some(c => c.sold)) coachMark('forge');
+        else if (S.shopMode === 'card') return { id: 'forge', sel: '.wb-tiles', text: 'Now tap a letter. Every copy of it in your bag gets the forge.' };
+      }
+      if (!seen('audit') && audit) return { id: 'audit', sel: '.audit-banner', gotIt: true, text: 'An Audit is coming: a boss round with a special rule. Here’s what it does.' };
+    }
+    return null;
+  }
+  function runCoach() {
+    const modalOpen = document.getElementById('modal').classList.contains('open');
+    if (sceneOpen() || modalOpen || S.busy || S.broken) { coachClear(); return; }
+    const step = pickCoach();
+    if (step) coachShow(step); else coachClear();
+  }
+  document.addEventListener('tf-coach-refresh', () => runCoach());
+  window.addEventListener('scroll', () => { if (coachCur) runCoach(); }, { passive: true });
 
   function handleAction(act, arg) {
     switch (act) {
@@ -1825,9 +1918,11 @@ const TileForge = (() => {
       }
       case 'demoCombo': loadDemoCombo(); return;
       case 'addGold': S.gold += 20; SFX.coin(); render(); return;
-      case 'restart': closeModal(); hideBeatitude(); initState(); render(); return;
-      case 'retryStage': closeModal(); startStage(S.terrace, S.stageInTerrace); render(); return;
-      case 'endless': closeModal(); S.demoBanner = null; genShop(); S.phase = 'shop'; render(); return;
+      case 'restart': case 'toHome': goHome(); return;
+      case 'startRun': hideScene(); closeModal(); initState(); render(); SFX.chord(); return;
+      case 'retryStage': closeModal(); hideScene(); startStage(S.terrace, S.stageInTerrace); render(); return;
+      case 'endless': closeModal(); hideScene(); S.demoBanner = null; genShop(); S.phase = 'shop'; render(); return;
+      case 'resetTips': coachReset(); closeModal(); render(); showToast('First-time tips will show again.'); return;
       case 'inscribe': inscribe(); return;
       case 'clear': clearLine(); return;
       case 'shift': shiftLine(+arg); return;
@@ -1998,6 +2093,13 @@ const TileForge = (() => {
     }
   }
 
+  // Colour the key words in a tooltip the way the game colours them: gold, multiply, points, light, replay, wild/copy.
+  function colorTip(h) {
+    return h.split(' | ').join('<br>').replace(
+      /(\+?\$\d+|\bgold\b)|(×\s?[\d.,]+|\bdouble\b|\btriple\b|\^1\.25)|(\+\d+(?: points?)?)|(\bflames?\b|\bcandle(?:light)?\b|\blights?\b|\bblaze\b|\bshadow\b)|(\bone extra time\b|\breplays?\b|↻)|(\bwild\b|\bcop(?:y|ies)\b|\bclones?\b)/gi,
+      (m, g, x, p, l, r) => `<span class="tt-${g ? 'gold' : x ? 'mult' : p ? 'pts' : l ? 'light' : r ? 'echo' : 'green'}">${m}</span>`);
+  }
+
   function hideTip() {
     const t = document.getElementById('tip');
     if (t) t.classList.remove('show');
@@ -2009,7 +2111,7 @@ const TileForge = (() => {
     const title = el.dataset.tipTitle || '';
     const text = el.dataset.tipText || '';
     if (!text) { hideTip(); return; }
-    t.innerHTML = `${title ? `<b>${esc(title)}</b>` : ''}${esc(text)}`;
+    t.innerHTML = `${title ? `<b>${esc(title)}</b>` : ''}${colorTip(esc(text))}`;
     const r = el.getBoundingClientRect();
     t.classList.add('show');
     const tw = t.offsetWidth || 220;
@@ -2151,6 +2253,13 @@ const TileForge = (() => {
         startY: e.clientY,
         srcEl: tileEl,
         active: false,
+        hold: setTimeout(() => {
+          if (!touchDrag || touchDrag.active) return;
+          touchDrag.held = true;
+          showTipFor(tileEl);
+          coachMark('hold');
+          try { navigator.vibrate && navigator.vibrate(12); } catch (err) {}
+        }, 430),
         ghost: null
       };
     });
@@ -2161,6 +2270,7 @@ const TileForge = (() => {
       const dy = e.clientY - touchDrag.startY;
       if (!touchDrag.active) {
         if (Math.hypot(dx, dy) < 10) return;
+        clearTimeout(touchDrag.hold);
         touchDrag.active = true;
         hideTip();
         const ghost = touchDrag.srcEl.cloneNode(true);
@@ -2191,8 +2301,16 @@ const TileForge = (() => {
       if (!touchDrag || e.pointerId !== touchDrag.pointerId) return;
       const td = touchDrag;
       touchDrag = null;
+      clearTimeout(td.hold);
       if (td.ghost) td.ghost.remove();
       clearDragVisuals();
+      if (td.held && !td.active) {
+        // a long press only shows the tooltip; it doesn't place the tile
+        e.preventDefault();
+        suppressNextClick = true;
+        setTimeout(() => { suppressNextClick = false; }, 400);
+        return;
+      }
       if (!td.active) return;
       e.preventDefault();
       suppressNextClick = true;
@@ -2255,6 +2373,7 @@ const TileForge = (() => {
   initState();
   bindEvents();
   render();
+  showScene('home', homeData());
 
   return {
     restart() { handleAction('restart'); },
