@@ -1,0 +1,16 @@
+{
+  "name": "Tile Forge",
+  "short_name": "Tile Forge",
+  "description": "A word roguelike: spell words, forge your letters, climb seven terraces.",
+  "id": "/tileforge/",
+  "start_url": "/tileforge/",
+  "scope": "/tileforge/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#120a05",
+  "theme_color": "#120a05",
+  "icons": [
+    { "src": "/tileforge/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/tileforge/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
