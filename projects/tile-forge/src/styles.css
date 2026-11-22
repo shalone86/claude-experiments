@@ -2820,3 +2820,341 @@ button:disabled {
     padding: 1px 3px;
   }
 }
+
+/* =====================================================================
+   CLEAN REDESIGN — glyph forges, simple shop cards, living candlelight
+   ===================================================================== */
+
+/* ---- Forge glyphs: value + an arrow toward the tile it hits ---- */
+.glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.18em;
+  padding: 0.22em 0.55em;
+  border-radius: 999px;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 800;
+  font-size: 14px;
+  line-height: 1;
+  color: #fff;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  position: relative;
+}
+.glyph b { font-weight: 800; }
+.glyph sup { font-size: 0.62em; margin-left: 0.1em; opacity: 0.9; align-self: flex-start; }
+.g-pts   { background: linear-gradient(180deg, #2f66c4, #1a428c); }
+.g-mult  { background: linear-gradient(180deg, #cc3c24, #8e2212); }
+.g-echo  { background: linear-gradient(180deg, #8d4ac0, #5c2788); }
+.g-gold  { background: linear-gradient(180deg, #a8730f, #6a4306); color: #fff3c4; }
+.g-green { background: linear-gradient(180deg, #34957a, #1f6a55); }
+.g-more  { background: #3b2415; color: var(--gold-2); }
+.ga {
+  width: 0;
+  height: 0;
+  border-top: 0.34em solid transparent;
+  border-bottom: 0.34em solid transparent;
+  flex: none;
+}
+.ga-l { border-right: 0.46em solid currentColor; }
+.ga-r { border-left: 0.46em solid currentColor; }
+.g-flame { width: 0.78em; height: 1.04em; fill: #ffd34d; filter: drop-shadow(0 0 2px rgba(255, 190, 60, 0.9)); }
+.glyph.big { font-size: 25px; padding: 0.3em 0.62em; }
+.glyph.inline { font-size: 14px; vertical-align: middle; }
+.glyph.mini {
+  font-size: 9.5px;
+  padding: 0.18em 0.4em;
+  border-width: 1px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+.tile-chips { top: -8px; left: -4px; right: auto; gap: 1px; }
+.tile .tile-chips .glyph.mini + .glyph.mini { margin-left: -2px; }
+
+/* ---- Shop cards: glyph + price, the tooltip explains ---- */
+.shop-cards { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 10px; }
+@media (min-width: 960px) {
+  .shop-body .shop-cards { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+}
+.scard {
+  font: inherit;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 104px;
+  padding: 16px 8px 12px;
+  border-top-width: 2px;
+  text-align: center;
+  transition: transform 0.14s ease, box-shadow 0.14s ease, outline-color 0.14s;
+}
+.scard:hover:not([disabled]) { transform: translateY(-3px); }
+.scard:active:not([disabled]) { transform: translateY(0); }
+.scard.selected {
+  transform: translateY(-3px);
+  outline: 3px solid var(--gold-2);
+  outline-offset: 2px;
+  animation: cardGlow 1.4s ease-in-out infinite;
+}
+@keyframes cardGlow {
+  0%, 100% { box-shadow: 0 4px 0 #5b4324, 0 0 10px rgba(244, 216, 134, 0.45); }
+  50%      { box-shadow: 0 4px 0 #5b4324, 0 0 22px rgba(244, 216, 134, 0.95); }
+}
+.scard.cant { opacity: 0.55; }
+.scard.cant .scard-price { color: var(--cinnabar); }
+.scard.sold { opacity: 0.32; cursor: default; }
+.scard-price {
+  font-family: 'Cinzel', serif;
+  font-weight: 900;
+  font-size: 16px;
+  color: #7a5512;
+}
+.rar-dot {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #a8977c;
+}
+.rar-dot.rar-uncommon { background: var(--verdigris-2); }
+.rar-dot.rar-rare { background: var(--cinnabar-2); box-shadow: 0 0 6px var(--cinnabar-2); }
+.rar-dot.rar-legendary { background: var(--gold-2); box-shadow: 0 0 8px var(--gold-2); }
+
+.shop-guide {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 10px;
+  padding: 8px 10px 8px 12px;
+  border-radius: 10px;
+  background: rgba(244, 216, 134, 0.14);
+  border: 1px solid rgba(244, 216, 134, 0.55);
+  color: var(--vellum);
+  font-size: 15px;
+  animation: guideIn 0.25s ease-out;
+}
+.shop-guide > .glyph { flex: none; }
+.shop-guide > span:not(.glyph) { flex: 1; }
+@keyframes guideIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.shop-title { font-size: 24px; }
+.wb-title small { font-family: system-ui, sans-serif; font-weight: 600; font-size: 12px; opacity: 0.6; margin-left: 6px; letter-spacing: 0; }
+.wb-crafts { display: flex; gap: 6px; flex-wrap: wrap; }
+.craft {
+  font: inherit;
+  font-size: 15px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  cursor: pointer;
+  color: var(--vellum);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(244, 216, 134, 0.35);
+  transition: background 0.15s, transform 0.15s;
+}
+.craft b { font-family: 'Cinzel', serif; font-weight: 900; font-size: 13px; color: var(--gold-2); }
+.craft:hover:not([disabled]) { background: rgba(244, 216, 134, 0.16); transform: translateY(-1px); }
+.craft.on { background: rgba(244, 216, 134, 0.28); border-color: var(--gold-2); }
+.craft[disabled] { opacity: 0.4; cursor: default; }
+.tile.pickable .face { animation: pickPulse 1.2s ease-in-out infinite; }
+@keyframes pickPulse {
+  0%, 100% { box-shadow: 0 3px 0 #8a6a40, 0 0 0 0 rgba(244, 216, 134, 0); }
+  50%      { box-shadow: 0 3px 0 #8a6a40, 0 0 0 3px rgba(244, 216, 134, 0.85); }
+}
+
+/* ---- Candlelight: a real candle that flickers; light is the number above the slot ---- */
+.vslot { position: relative; isolation: isolate; }
+.candle-head {
+  height: 64px;
+  gap: 2px;
+  justify-content: flex-end;
+}
+.cflame { position: relative; display: block; width: 30px; height: 44px; }
+.cflame .wax {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 13px;
+  height: 16px;
+  margin-left: -6.5px;
+  border-radius: 2px 2px 1px 1px;
+  background: linear-gradient(90deg, #d4bd8f, #fff8e2 45%, #c3a26d);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+.cflame .wax::before { /* wick */
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -3px;
+  width: 1.5px;
+  height: 4px;
+  margin-left: -0.75px;
+  background: #3a2414;
+}
+.cflame .fl, .cflame .fl-core {
+  position: absolute;
+  left: 50%;
+  transform-origin: 50% 100%;
+  border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%;
+}
+.cflame .fl {
+  bottom: 18px;
+  width: 16px;
+  height: 25px;
+  margin-left: -8px;
+  background: radial-gradient(ellipse at 50% 80%, #fffbe0 0 20%, #ffd45c 42%, #ff8d22 70%, rgba(255, 90, 0, 0) 92%);
+  filter: drop-shadow(0 0 5px #ffb02e) drop-shadow(0 0 14px rgba(255, 150, 40, 0.65));
+  animation: flick 1.15s infinite var(--fd, 0s), flare 3.7s infinite var(--fd, 0s);
+}
+.cflame .fl-core {
+  bottom: 19px;
+  width: 6px;
+  height: 10px;
+  margin-left: -3px;
+  background: radial-gradient(ellipse at 50% 70%, #ffffff, #fff1b8 60%, rgba(255, 241, 184, 0));
+  animation: flick 0.8s infinite var(--fd, 0s);
+}
+.cflame.orb .fl { bottom: 3px; }
+.cflame.orb .fl-core { bottom: 4px; }
+.cflame .emb {
+  position: absolute;
+  left: 50%;
+  bottom: 5px;
+  width: 9px;
+  height: 9px;
+  margin-left: -4.5px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffe8a6, #ff9c2c 55%, rgba(255, 140, 40, 0) 75%);
+  animation: ember 1.9s ease-in-out infinite var(--fd, 0s);
+}
+.lv-blazing .cflame .fl {
+  width: 20px;
+  height: 31px;
+  margin-left: -10px;
+  background: radial-gradient(ellipse at 50% 80%, #ffffff 0 18%, #ffe680 40%, #e07cff 72%, rgba(160, 60, 255, 0) 92%);
+  filter: drop-shadow(0 0 6px #ffbe3b) drop-shadow(0 0 16px rgba(190, 100, 255, 0.8));
+}
+.lmult {
+  font-family: 'Cinzel', serif;
+  font-weight: 900;
+  font-size: 15px;
+  line-height: 1;
+  height: 15px;
+}
+.lv-bright .lmult { color: #8a5508; text-shadow: 0 0 8px rgba(255, 205, 90, 0.95); }
+.lv-warm .lmult { color: #a3711e; font-size: 12px; }
+.lv-blazing .lmult { color: #6b2a94; text-shadow: 0 0 10px rgba(255, 215, 110, 1); }
+.candle-head.moved .cflame { animation: candleIn 0.6s cubic-bezier(0.2, 1.5, 0.4, 1); }
+.candle-head.moved .lmult { animation: multIn 0.6s ease-out; }
+
+@keyframes flick {
+  0%   { transform: scale(1, 1) skewX(0deg); }
+  9%   { transform: scale(0.95, 1.07) skewX(2deg); }
+  21%  { transform: scale(1.05, 0.93) skewX(-3deg); }
+  33%  { transform: scale(0.93, 1.12) skewX(1deg); }
+  47%  { transform: scale(1.03, 0.96) skewX(-1.5deg); }
+  58%  { transform: scale(0.97, 1.09) skewX(3deg); }
+  72%  { transform: scale(1.06, 0.92) skewX(-2deg); }
+  86%  { transform: scale(0.98, 1.05) skewX(1deg); }
+  100% { transform: scale(1, 1) skewX(0deg); }
+}
+@keyframes flare {
+  0%, 100% { opacity: 1; }
+  41% { opacity: 1; }
+  43% { opacity: 0.72; }
+  45% { opacity: 1; }
+  77% { opacity: 0.85; }
+  79% { opacity: 1; }
+}
+@keyframes ember {
+  0%, 100% { opacity: 0.55; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+@keyframes candleIn {
+  0% { transform: translateY(14px) scale(0.3); opacity: 0; }
+  60% { opacity: 1; }
+  100% { transform: none; }
+}
+@keyframes multIn {
+  0% { transform: scale(1.8); opacity: 0; }
+  100% { transform: none; opacity: 1; }
+}
+
+/* light pools under each slot, flickering out of step with each other */
+.vcell::before {
+  content: "";
+  position: absolute;
+  inset: -9px;
+  border-radius: 18px;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0;
+}
+.vcell.light-warm::before {
+  background: radial-gradient(ellipse at 50% 20%, rgba(255, 190, 90, 0.5), rgba(255, 170, 60, 0) 72%);
+  animation: glowFlick 2.4s infinite var(--fd, 0s);
+}
+.vcell.light-bright::before {
+  background: radial-gradient(ellipse at 50% 18%, rgba(255, 214, 120, 0.9), rgba(255, 160, 60, 0.3) 55%, rgba(255, 160, 60, 0) 78%);
+  animation: glowFlick 1.7s infinite var(--fd, 0s);
+}
+.vcell.light-blazing::before {
+  background: radial-gradient(ellipse at 50% 18%, rgba(255, 236, 150, 0.95), rgba(200, 120, 255, 0.4) 55%, rgba(200, 120, 255, 0) 80%);
+  animation: glowFlick 1.3s infinite var(--fd, 0s);
+}
+.vcell.light-bright .tile .face,
+.vcell.light-blazing .tile .face { animation: faceFlick 1.7s infinite var(--fd, 0s); }
+@keyframes glowFlick {
+  0%, 100% { opacity: 0.86; }
+  11% { opacity: 1; }
+  24% { opacity: 0.68; }
+  37% { opacity: 0.96; }
+  51% { opacity: 0.76; }
+  64% { opacity: 1; }
+  79% { opacity: 0.8; }
+}
+@keyframes faceFlick {
+  0%, 100% { filter: brightness(1.1) saturate(1.1); }
+  24% { filter: brightness(1.02) saturate(1.05); }
+  64% { filter: brightness(1.16) saturate(1.14); }
+}
+.candle-halo { animation: glowFlick 2s infinite; }
+.light-pill, .slot-flame, .slot-flame-spacer { display: none !important; }
+
+/* ---- Menu: sound ---- */
+.vol-row { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+.vol-row span { width: 64px; font-weight: 600; }
+.vol-row input { flex: 1; accent-color: var(--gold); }
+
+@media (prefers-reduced-motion: reduce) {
+  .cflame .fl, .cflame .fl-core, .cflame .emb, .vcell::before, .vcell .tile .face, .candle-halo, .scard.selected, .tile.pickable .face { animation: none !important; }
+}
+
+.vcell .pnum {
+  font-family: 'Cinzel', serif;
+  font-weight: 900;
+  font-size: 20px;
+  color: rgba(138, 85, 8, 0.45);
+}
+.vcell.light-blazing .pnum { color: rgba(107, 42, 148, 0.5); }
+@media (max-width: 520px) {
+  .candle-head { height: 54px; }
+  .cflame { transform: scale(0.82); transform-origin: 50% 100%; }
+  .vcell .pnum { font-size: 16px; }
+}
+@media (max-width: 600px) {
+  #app.phase-shop .scard { min-height: 74px; padding: 12px 4px 7px; gap: 5px; }
+  #app.phase-shop .scard .glyph.big { font-size: 19px; }
+  #app.phase-shop .scard-price { font-size: 13px; }
+  .shop-guide { font-size: 13px; padding: 6px 8px; }
+}
+@media (max-width: 600px) {
+  #app:not(.phase-shop) .candle-head { height: 52px; gap: 1px; }
+}
+
+.shop-gold { font-family: 'Cinzel', serif; font-weight: 900; color: var(--gold-2); font-size: 1.15em; }

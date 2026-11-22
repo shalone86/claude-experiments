@@ -370,66 +370,7 @@ function safePow(base, exp) {
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-/* =====================================================================
-   WEBAUDIO SFX
-   ===================================================================== */
-const SFX = {
-  ctx: null,
-  muted: false,
-  ensure() {
-    if (this.muted) return null;
-    try {
-      if (!this.ctx) {
-        const AC = window.AudioContext || window.webkitAudioContext;
-        if (!AC) return null;
-        this.ctx = new AC();
-      }
-      if (this.ctx.state === 'suspended') this.ctx.resume();
-      return this.ctx;
-    } catch (e) {
-      return null;
-    }
-  },
-  tone(freq, type, dur, vol = 0.06, slide = null) {
-    const c = this.ensure();
-    if (!c) return;
-    try {
-      const o = c.createOscillator();
-      const g = c.createGain();
-      const t = c.currentTime;
-      o.type = type;
-      o.frequency.setValueAtTime(freq, t);
-      if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + dur);
-      g.gain.setValueAtTime(vol, t);
-      g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-      o.connect(g);
-      g.connect(c.destination);
-      o.start(t);
-      o.stop(t + dur);
-    } catch (e) {}
-  },
-  pick() { this.tone(620, 'triangle', 0.05, 0.05, 820); },
-  drop() { this.tone(360, 'triangle', 0.06, 0.05, 250); },
-  tick(n = 0) { this.tone(440 * Math.pow(1.06, Math.min(n, 16)), 'triangle', 0.08, 0.05); },
-  mult(n = 0) { this.tone(330 * Math.pow(1.08, Math.min(n, 16)), 'sawtooth', 0.11, 0.03, 660 * Math.pow(1.08, Math.min(n, 16))); },
-  echo(n = 0) { this.tone(520 * Math.pow(1.07, Math.min(n, 16)), 'sine', 0.12, 0.05, 780); },
-  chord() { [261.6, 329.6, 392, 523.2].forEach((f, i) => setTimeout(() => this.tone(f, 'triangle', 0.24, 0.05), i * 40)); },
-  win() { [392, 493.9, 587.3, 784].forEach((f, i) => setTimeout(() => this.tone(f, 'sine', 0.3, 0.06), i * 70)); },
-  coin() { this.tone(1200, 'square', 0.05, 0.025, 1800); setTimeout(() => this.tone(1600, 'square', 0.07, 0.025), 55); },
-  whoosh() { this.tone(260, 'sine', 0.13, 0.05, 520); },
-  buzz() { this.tone(150, 'sawtooth', 0.15, 0.04, 105); },
-  bell() {
-    [523.2, 659.3, 784, 1046.5].forEach((f, i) => setTimeout(() => this.tone(f, 'sine', 1.1, 0.045), i * 95));
-  },
-  fanfare() {
-    [[392, 0], [523.2, 120], [659.3, 240], [784, 360], [1046.5, 520]].forEach(([f, t]) =>
-      setTimeout(() => {
-        this.tone(f, 'sawtooth', 0.4, 0.025);
-        this.tone(f / 2, 'triangle', 0.5, 0.04);
-      }, t)
-    );
-  }
-};
+// Sound effects and music live in audio.js (shared with The Scriptorium Vigil).
 
 /* =====================================================================
    SHARED UI UTILITIES
@@ -790,23 +731,26 @@ function nextCandleSlot(curSlot) {
   return choices[Math.floor(Math.random() * choices.length)];
 }
 
-function renderCandleHead(slotIdx, candleSlot, lightLevel, snuffed = false) {
+function renderCandleHead(slotIdx, candleSlot, lightLevel, snuffed = false, moved = false) {
   const info = lightInfoFromLevel(lightLevel);
   const isCandle = !snuffed && slotIdx === candleSlot;
-  const showFlame = isCandle || lightLevel >= 2;
-  const flameCls = !isCandle ? (lightLevel >= 3 ? 'blazing-sun' : 'lantern-sun') : '';
-  const title = info.level === 'blazing'
-    ? 'Blazing Candlelight!'
-    : info.level === 'bright'
-      ? 'Brightest Candlelight'
-      : info.level === 'warm'
-        ? 'Warm Candlelight'
-        : 'Shadow Slot';
-
+  const flame = isCandle ? 'candle' : lightLevel >= 2 ? 'orb' : lightLevel === 1 ? 'ember' : '';
+  const title = info.level === 'blazing' ? `Blazing ×${fmtC(info.mult)}`
+    : info.level === 'bright' ? 'Candlelight ×3'
+      : info.level === 'warm' ? 'Warm light ×2'
+        : 'Shadow';
+  const text = info.level === 'blazing' ? `Light stacked by your forges: a letter here scores ×${fmtC(info.mult)}.`
+    : info.level === 'bright' ? 'A letter here scores triple.'
+      : info.level === 'warm' ? 'Next to a flame: a letter here scores double.'
+        : snuffed ? 'The candle is out for this Audit: letters score their normal points.'
+          : 'Out of the light: letters here score their normal points.';
+  const more = isCandle ? ' The candle moves after every word. Slide your word with ‹ › to catch it.' : '';
+  // each slot flickers on its own rhythm
+  const delay = ((slotIdx * 0.53) % 1.3).toFixed(2);
   return `
-    <div class="candle-head ${lightLevel >= 2 ? 'is-bright' : ''}" data-tip-title="${esc(title)}" data-tip-text="${esc(info.tip)}">
-      ${showFlame ? `<span class="slot-flame ${flameCls}" aria-hidden="true"></span>` : `<span class="slot-flame-spacer" aria-hidden="true"></span>`}
-      <span class="light-pill light-${info.level}">${info.label}</span>
+    <div class="candle-head lv-${info.level} ${isCandle ? 'is-candle' : ''} ${isCandle && moved ? 'moved' : ''}" style="--fd:-${delay}s" data-tip-title="${esc(title)}" data-tip-text="${esc(text + more)}">
+      <span class="cflame ${flame}" aria-hidden="true">${flame && flame !== 'ember' ? '<i class="fl"></i><i class="fl-core"></i>' : flame === 'ember' ? '<i class="emb"></i>' : ''}${isCandle ? '<i class="wax"></i>' : ''}</span>
+      <span class="lmult">${info.mult > 1 ? '×' + fmtC(info.mult) : ''}</span>
     </div>
   `;
 }

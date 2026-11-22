@@ -62,6 +62,67 @@ const TileForge = (() => {
     util: 'COMBO & WILD'
   };
 
+  // Each forge as a glyph: the value, with an arrow toward the tile it hits.
+  // No arrow = this tile. Both arrows = the whole word (or every slot, for light).
+  const GLYPHS = {
+    add_self_20: ['self', '+20'], add_self_40: ['self', '+40'], add_left_30: ['left', '+30'], add_right_30: ['right', '+30'],
+    mult_self_2: ['self', '×2'], mult_self_3: ['self', '×3'],
+    mult_left_2: ['left', '×2'], mult_left_3: ['left', '×3'], mult_left_4: ['left', '×4'],
+    mult_right_2: ['right', '×2'], mult_right_3: ['right', '×3'], mult_right_4: ['right', '×4'],
+    mult_word_2: ['both', '×2'], mult_word_3: ['both', '×3'],
+    replay_self: ['self', '↻'], replay_left: ['left', '↻'], replay_right: ['right', '↻'],
+    light_self: ['self', '*'], light_left: ['left', '*'], light_right: ['right', '*'], light_all: ['both', '*'],
+    forge_combo: ['self', 'TH'],
+    clone_self: ['self', '⧉'], clone_left: ['left', '⧉'], clone_right: ['right', '⧉'],
+    wild_self: ['self', '?'], wild_left: ['left', '?'], wild_right: ['right', '?'],
+    grow_2: ['self', '↑×2'], gold_3: ['self', '+$3'], power_word: ['both', '^1.25']
+  };
+  // What each forge does, in plain words (tooltips).
+  const TIPS = {
+    add_self_20: 'This letter is worth +20 points, for good.',
+    add_self_40: 'This letter is worth +40 points, for good.',
+    add_left_30: 'When it scores, the letter to its left gets +30 points.',
+    add_right_30: 'When it scores, the letter to its right gets +30 points.',
+    mult_self_2: 'This letter scores ×2.',
+    mult_self_3: 'This letter scores ×3.',
+    mult_left_2: 'The letter to its left scores ×2.',
+    mult_left_3: 'The letter to its left scores ×3.',
+    mult_left_4: 'The letter to its left scores ×4.',
+    mult_right_2: 'The letter to its right scores ×2.',
+    mult_right_3: 'The letter to its right scores ×3.',
+    mult_right_4: 'The letter to its right scores ×4.',
+    mult_word_2: 'The whole word scores ×2.',
+    mult_word_3: 'The whole word scores ×3.',
+    replay_self: 'This letter scores one extra time.',
+    replay_left: 'The letter to its left scores one extra time.',
+    replay_right: 'The letter to its right scores one extra time.',
+    light_self: 'Brings a flame to this letter’s slot (×3 there). Stack more for a bigger blaze.',
+    light_left: 'Brings a flame to the slot on its left (×3 there). Stacks.',
+    light_right: 'Brings a flame to the slot on its right (×3 there). Stacks.',
+    light_all: 'Lights every slot on the line one step brighter. Stacks.',
+    forge_combo: 'Turns one copy into a letter pair like TH, ING or QU. It keeps its forges.',
+    clone_self: 'Each time it’s played, a plain copy of this letter joins your bag.',
+    clone_left: 'Each time it’s played, a plain copy of the letter on its left joins your bag.',
+    clone_right: 'Each time it’s played, a plain copy of the letter on its right joins your bag.',
+    wild_self: 'Turns one copy into a Wild ? that can be any letter. Up to 2 per run.',
+    wild_left: 'The letter on its left becomes Wild while they sit together. Plain letters only.',
+    wild_right: 'The letter on its right becomes Wild while they sit together. Plain letters only.',
+    grow_2: 'After each play, this letter’s points double, for good.',
+    gold_3: '+$3 every time this letter scores.',
+    power_word: 'Raises the whole word’s score to the power of 1.25.'
+  };
+  const ONE_COPY = new Set(['forge_combo', 'wild_self']);
+  const tipFor = (u) => TIPS[u.id] + (ONE_COPY.has(u.id) ? '' : ' Forges every copy of the letter you pick.');
+  const FLAME_SVG = '<svg class="g-flame" viewBox="0 0 12 16" aria-hidden="true"><path d="M6 .4C7.6 4 11.2 6 11.2 10.2a5.2 5.2 0 0 1-10.4 0c0-2.3 1.2-3.7 2.5-5 .2 1.9 1 2.9 2.1 2.9C5 5 5.2 2.6 6 .4z"/></svg>';
+  function glyphHtml(u, opts = {}) {
+    const [dir, label] = GLYPHS[u.id] || ['self', u.chip];
+    const body = label === '*' ? FLAME_SVG : `<b>${esc(label)}</b>`;
+    const l = dir === 'left' || dir === 'both' ? '<i class="ga ga-l"></i>' : '';
+    const r = dir === 'right' || dir === 'both' ? '<i class="ga ga-r"></i>' : '';
+    const n = opts.count > 1 ? `<sup>${opts.count}</sup>` : '';
+    return `<span class="glyph g-${u.color}${opts.cls ? ' ' + opts.cls : ''}">${l}${body}${r}${n}</span>`;
+  }
+
   const BURN_CRAFT_COST = 4;
   const MIN_BAG_SIZE = 10;
   const CLONE_CRAFT_COST = 9;
@@ -124,6 +185,8 @@ const TileForge = (() => {
   let dragUid = null;
   let touchDrag = null;
   let suppressNextClick = false;
+  let lastCandleSlot = null;
+  let lastPtr = 'mouse';
 
   const getStake = (id = S ? S.stakeId : activeStakeId) => STAKE_MAP[id] || STAKES[0];
   const effectiveGoalMult = (stakeId = S ? S.stakeId : activeStakeId, scalePct = S ? S.goalScalePct : goalScalePct) =>
@@ -875,13 +938,9 @@ const TileForge = (() => {
       modCounts.set(m, (modCounts.get(m) || 0) + 1);
     }
     const entries = [...modCounts.entries()];
-    const shownChips = entries.slice(0, 2).map(([mId, cnt]) => {
-      const u = UPGRADES[mId];
-      const lbl = cnt > 1 ? `${u.chip}×${cnt}` : u.chip;
-      return `<span class="tchip tchip-${u.color}">${esc(lbl)}</span>`;
-    });
-    if (entries.length > 2) {
-      shownChips.push(`<span class="tchip tchip-more">+${entries.length - 2}</span>`);
+    const shownChips = entries.slice(0, 3).map(([mId, cnt]) => glyphHtml(UPGRADES[mId], { count: cnt, cls: 'mini' }));
+    if (entries.length > 3) {
+      shownChips.push(`<span class="glyph g-more mini"><b>+${entries.length - 3}</b></span>`);
     }
 
     const ltrHtml = opts.fill
@@ -895,7 +954,7 @@ const TileForge = (() => {
       : [`${t.wild ? 'Wild ?' : t.letter} · ${fmtC(t.val)} pts`];
     entries.forEach(([mId, cnt]) => {
       const u = UPGRADES[mId];
-      tipParts.push(`${u.name}${cnt > 1 ? ` (×${cnt})` : ''}: ${u.short}`);
+      tipParts.push(`${u.name}${cnt > 1 ? ` (×${cnt})` : ''}: ${TIPS[mId] || u.short}`);
     });
     if (opts.neighborWild && !t.wild) tipParts.push('Wild right now (from neighbor Wild upgrade)!');
     if (opts.cleanNote) tipParts.push('Clean copy (no upgrades — cloned or starter)');
@@ -1126,6 +1185,7 @@ const TileForge = (() => {
 
     if (S.score >= spec.goal) {
       SFX.win();
+      MUSIC.stinger('D');
       const unusedBonus = Math.min(3, S.wordsLeft);
       const payout = spec.reward + unusedBonus;
       S.gold += payout;
@@ -1163,6 +1223,7 @@ const TileForge = (() => {
   function openLoss() {
     const spec = stageSpec(S.terrace, S.stageInTerrace, S.audit);
     SFX.buzz();
+    MUSIC.stinger('E');
     showModal(
       'Out of Words',
       `<p>You scored <b>${fmt(S.score)}</b> of <b>${fmt(spec.goal)}</b> needed on ${esc(spec.label)}.</p>
@@ -1299,6 +1360,12 @@ const TileForge = (() => {
       </div>
 
       <div class="menu-section">
+        <div class="menu-sec-head"><b>Sound</b></div>
+        <label class="vol-row"><span>Music</span><input type="range" id="tf-vol-music" min="0" max="1" step="0.05" value="${VOL.music}"></label>
+        <label class="vol-row"><span>Effects</span><input type="range" id="tf-vol-sfx" min="0" max="1" step="0.05" value="${VOL.sfx}"></label>
+      </div>
+
+      <div class="menu-section">
         <div class="menu-sec-head">
           <b>Stakes (Cumulative Difficulty)</b>
           <span class="menu-hint">${changedStake ? `Click button below to start ${esc(picked.name)}` : 'Pick a Stake to start a new run with'}</span>
@@ -1363,7 +1430,6 @@ const TileForge = (() => {
           <div class="stat words"><span class="lbl">WORDS</span><b>${S.phase === 'play' ? S.wordsLeft : st.wordsPerStage}</b></div>
           <div class="stat swaps"><span class="lbl">SWAPS</span><b>${S.phase === 'play' ? S.swapsLeft : st.swapsPerStage}</b></div>
           <div class="stat gold"><span class="lbl">GOLD</span><b>$${S.gold}</b></div>
-          <button class="stat rules-btn" data-act="rules">RULES</button>
         </div>
       </div>
     `;
@@ -1392,12 +1458,15 @@ const TileForge = (() => {
     const nudgeRight = !v.empty && !v.positions.includes(S.candleSlot) && S.candleSlot > v.positions[v.positions.length - 1] && filledIdx[filledIdx.length - 1] < 4;
 
     const canDrag = !S.swapSet && !S.busy && !S.broken;
+    const candleMoved = lastCandleSlot !== null && lastCandleSlot !== S.candleSlot;
+    lastCandleSlot = S.candleSlot;
+    if (candleMoved) setTimeout(() => SFX.flare(), 60);
     const slotsHtml = S.line.map((t, i) => {
       const info = lightInfoFromLevel(lightLevels[i]);
       return `
-        <div class="vslot">
-          ${renderCandleHead(i, S.candleSlot, lightLevels[i], snuffed)}
-          <div class="vcell light-${info.level}" data-slot-idx="${i}">${t ? tileHtml(t, { fill: fillMap[i], neighborWild: !!neighborWildMap[i], draggable: canDrag }) : `<span class="pnum">${i + 1}</span>`}</div>
+        <div class="vslot" style="--fd:-${((i * 0.53) % 1.3).toFixed(2)}s">
+          ${renderCandleHead(i, S.candleSlot, lightLevels[i], snuffed, candleMoved)}
+          <div class="vcell light-${info.level}" data-slot-idx="${i}">${t ? tileHtml(t, { fill: fillMap[i], neighborWild: !!neighborWildMap[i], draggable: canDrag }) : `<span class="pnum">${info.mult > 1 ? '×' + fmtC(info.mult) : ''}</span>`}</div>
         </div>
       `;
     }).join('');
@@ -1409,12 +1478,12 @@ const TileForge = (() => {
     const infoHtml = S.demoBanner
       ? `<div class="info-strip demo"><div><b>🧪 DEMO GUIDE:</b> ${esc(S.demoBanner)}</div></div>`
       : S.swapSet
-        ? `<div class="info-strip"><div><b>Swap Mode:</b> Tap tiles on your rack to mark them (${S.swapSet.size} marked · ${S.swapsLeft} swaps left${filledIdx.length ? ' · board tiles stay put' : ''}).</div></div>`
-        : `<div class="info-strip"><div><b>🕯️ Candlelight:</b> Brightest = <b>×3</b> · Warm = <b>×2</b> · Shadow = normal (moves each word · shift with <b>‹ ›</b> or drag tiles).</div></div>`;
+        ? `<div class="info-strip"><div>Tap rack tiles to swap them · ${S.swapSet.size} marked</div></div>`
+        : '';
 
     const lenBonus = v.empty ? 0 : (LENGTH_BONUS[v.count] || 0);
     const breakdownText = v.empty
-      ? 'Tap or drag letters onto the 5 slots, then tap the big blue score button'
+      ? 'Spell a word on the line'
       : `${WORD_NAMES[v.count]}${lenBonus ? ` (+${lenBonus} length bonus)` : ''} · ${S.score < spec.goal ? `${fmtC(Math.max(0, spec.goal - S.score))} left to goal` : 'Goal reached!'}`;
 
     const noRackTiles = !S.hand.length;
@@ -1457,15 +1526,6 @@ const TileForge = (() => {
       ${infoHtml}
       <div class="book-cover">
         <div class="book-page">
-          <div class="bk-top">
-            <div class="bk-wordtype">
-              <div class="initial">${v.empty ? '✠' : v.count}</div>
-              <div>
-                <div class="vtype">${v.empty ? 'The Book of Life' : WORD_NAMES[v.count]}</div>
-                <div class="vlvl">${v.empty ? 'Stack tile upgrades in the Forge shop!' : lenBonus ? `${v.count}-Letter Bonus: +${lenBonus}` : 'Short word (no length bonus)'}</div>
-              </div>
-            </div>
-          </div>
           <div class="angel-line">${ANGEL_SVG}<div class="judgement ${judge.cls}">${angelTextHtml}</div></div>
           <div class="verse-wrap">
             <button class="shift ${nudgeLeft ? 'nudge' : ''}" data-act="shift" data-arg="-1" ${!filledIdx.length || filledIdx[0] === 0 ? 'disabled' : ''} title="Shift word left">‹</button>
@@ -1579,13 +1639,12 @@ const TileForge = (() => {
     else if (S.wbFilter === 'high') shownStacks = highStacks;
     else shownStacks = allSortedStacks;
 
-    const wbTitleHtml = `Letter Stacks (${upStacks.length} upgraded · ${S.bag.length} tiles · ${countWildsInBag()}/${MAX_WILD_TILES} Wilds)`;
+    const wbTitleHtml = `Your letters <small>${S.bag.length} tiles</small>`;
     const wbFiltersHtml = `
-      <button class="wb-filter ${S.wbFilter === 'all' ? 'active' : ''}" data-act="wbFilter" data-arg="all">All Letters (${allStacks.length})</button>
-      <button class="wb-filter ${S.wbFilter === 'upgraded' ? 'active' : ''}" data-act="wbFilter" data-arg="upgraded">Upgraded (${upStacks.length})</button>
-      <button class="wb-filter ${S.wbFilter === 'combos' ? 'active' : ''}" data-act="wbFilter" data-arg="combos">Combos (${comboStacks.length})</button>
-      <button class="wb-filter ${S.wbFilter === 'vowels' ? 'active' : ''}" data-act="wbFilter" data-arg="vowels">Vowels (${vowelStacks.length})</button>
-      <button class="wb-filter ${S.wbFilter === 'high' ? 'active' : ''}" data-act="wbFilter" data-arg="high">High Score (${highStacks.length})</button>
+      <button class="wb-filter ${S.wbFilter === 'all' ? 'active' : ''}" data-act="wbFilter" data-arg="all">All</button>
+      <button class="wb-filter ${S.wbFilter === 'upgraded' ? 'active' : ''}" data-act="wbFilter" data-arg="upgraded">Forged</button>
+      <button class="wb-filter ${S.wbFilter === 'vowels' ? 'active' : ''}" data-act="wbFilter" data-arg="vowels">Vowels</button>
+      ${comboStacks.length ? `<button class="wb-filter ${S.wbFilter === 'combos' ? 'active' : ''}" data-act="wbFilter" data-arg="combos">Pairs</button>` : ''}
     `;
     const wbTilesHtml = shownStacks.length
       ? shownStacks.map(st => {
@@ -1599,51 +1658,36 @@ const TileForge = (() => {
       const rm = RARITY_META[u.rarity || 'common'];
       const isSel = S.shopMode === 'card' && S.shopSel === idx;
       const cant = S.gold < c.cost;
+      const tipTitle = `${u.name} · ${rm.label.charAt(0) + rm.label.slice(1).toLowerCase()}`;
       return `
-        <div class="scard cat-${u.cat} ${rm.cls} ${c.sold ? 'sold' : ''} ${isSel ? 'selected' : ''}">
-          <div class="scard-head-row">
-            <span class="scard-cat">${CAT_LABELS[u.cat]}</span>
-            <span class="rar-pill ${rm.cls}">${rm.label}</span>
-          </div>
-          <div class="scard-top">
-            <span class="scard-ico">${u.icon}</span>
-            <span class="scard-name">${esc(u.name)}</span>
-          </div>
-          <div class="scard-desc">${esc(u.short)}</div>
-          <div class="scard-foot">
-            <span style="font-family:Cinzel,serif;font-weight:900;color:#7a5512">$${c.cost}</span>
-            ${c.sold ? `<span style="font-family:Cinzel,serif;font-weight:900;font-size:11px;color:#b5301c">FORGED</span>` : `<button class="btn mini ${isSel ? 'lapis' : 'gold'}" data-act="pickCard" data-arg="${idx}" ${cant ? 'disabled' : ''}>${isSel ? 'Cancel' : 'Select'}</button>`}
-          </div>
-        </div>
+        <button class="scard cat-${u.cat} ${rm.cls} ${c.sold ? 'sold' : ''} ${isSel ? 'selected' : ''} ${cant && !c.sold ? 'cant' : ''}"
+          data-act="pickCard" data-arg="${idx}" data-card-idx="${idx}" ${c.sold ? 'disabled' : ''}
+          data-tip-title="${esc(tipTitle)}" data-tip-text="${esc(tipFor(u))}${cant && !c.sold ? ` (Need $${c.cost}.)` : ''}">
+          ${glyphHtml(u, { cls: 'big' })}
+          <span class="scard-price">${c.sold ? 'Forged' : `$${c.cost}`}</span>
+          <span class="rar-dot ${rm.cls}" aria-hidden="true"></span>
+        </button>
       `;
     }).join('');
 
-    let guideMsg = '<b>✨ Everything Stacks!</b> Mix +Score, Multiply, Replay, Light, Clone &amp; Wild on any letter — forges apply to <b>ALL copies</b>! (Burn, Fuse &amp; Forge Combo affect 1 copy.)';
+    let guideMsg = '';
     if (selCard) {
-      guideMsg = selCard.item.id === 'forge_combo'
-        ? `<b>Ready (${esc(selCard.item.name)}):</b> Tap a letter stack on the Workbench to turn <b>1 copy</b> into a digraph/trigraph (keeps all existing forges)!`
-        : `<b>Ready (${esc(selCard.item.name)} — ${esc(selCard.item.short)}):</b> Tap ANY letter stack on the Workbench — <b>stacks on top of existing upgrades</b> across ALL copies!`;
+      guideMsg = `${glyphHtml(selCard.item, { cls: 'inline' })} <span>${ONE_COPY.has(selCard.item.id) ? 'Tap a letter to change one copy.' : 'Tap a letter to forge every copy of it.'}</span>`;
     } else if (S.shopMode === 'burn') {
-      guideMsg = `<b>🔥 Burn Tile ($${burnCost}):</b> Tap ANY letter stack on the Workbench to permanently remove <b>1 copy</b> from your bag! (Min ${MIN_BAG_SIZE} tiles.)`;
+      guideMsg = `<span>🔥 Tap a letter to burn one copy out of your bag.</span>`;
     } else if (S.shopMode === 'clone') {
-      guideMsg = `<b>Clone +1 ($${cloneCost}):</b> Tap a non-wild stack on the Workbench to add <b>1 clean copy</b> to your bag (no upgrades)!`;
+      guideMsg = `<span>⧉ Tap a letter to add a plain copy of it to your bag.</span>`;
     } else if (S.shopMode === 'fuse') {
-      if (!S.fuseFirstUid) {
-        guideMsg = `<b>Fuse 2 Tiles ($${fuseCost}):</b> Tap the FIRST tile on the Workbench (1–2 letters, non-wild).`;
-      } else {
-        const fTile = S.bag.find(t => t.uid === S.fuseFirstUid);
-        const canDoubleSame = fTile && !fTile.wild && fTile.letter.length * 2 <= 3 &&
-          S.bag.filter(t => t.uid !== fTile.uid && letterKey(t) === letterKey(fTile)).length > 0;
-        guideMsg = canDoubleSame
-          ? `<b>Fusing with “${esc(fTile.letter)}”:</b> Tap a SECOND tile (total ≤ 3 letters) — or tap <b>${esc(fTile.letter)}</b> again to make <b>${esc(fTile.letter + fTile.letter)}</b>!`
-          : `<b>Fusing with “${esc(fTile ? fTile.letter : '')}”:</b> Now tap a SECOND tile (total ≤ 3 letters) to combine scores &amp; upgrades!`;
-      }
+      const fTile = S.fuseFirstUid ? S.bag.find(t => t.uid === S.fuseFirstUid) : null;
+      guideMsg = fTile
+        ? `<span>🔗 Now tap a second letter to join with <b>${esc(fTile.letter)}</b> (3 letters at most).</span>`
+        : `<span>🔗 Tap the first letter to fuse.</span>`;
     }
 
     const auditPreviewHtml = previewAudit
       ? (nextSpec.isAudit
-          ? `<div class="audit-banner"><b>⚔️ NEXT STAGE · AUDIT — ${esc(previewAudit.name)}:</b> ${esc(previewAudit.desc)}</div>`
-          : `<div class="audit-banner shop-audit-preview"><b>🛡️ UPCOMING TERRACE ${nextT + 1} AUDIT (Vigil ${nextS + 1} is next) — ${esc(previewAudit.name)}:</b> ${esc(previewAudit.desc)}</div>`)
+          ? `<div class="audit-banner"><b>⚔️ Next: ${esc(previewAudit.name)}</b> ${esc(previewAudit.desc)}</div>`
+          : `<div class="audit-banner shop-audit-preview"><b>Terrace ${nextT + 1} Audit: ${esc(previewAudit.name)}</b> ${esc(previewAudit.desc)}</div>`)
       : '';
 
     return `
@@ -1651,20 +1695,18 @@ const TileForge = (() => {
       <div class="shop-wrap">
         <div class="shop-head">
           <div>
-            <div class="shop-title">The Tile Forge (Shop ${S.shopNum})</div>
-            <div class="shop-sub">Next: <b>${esc(nextSpec.label)}</b> · Goal <b>${fmtC(nextSpec.goal)}</b> · Gold <b>$${S.gold}</b></div>
+            <div class="shop-title">The Forge</div>
+            <div class="shop-sub"><span class="shop-gold">$${S.gold}</span> · Next goal <b>${fmtC(nextSpec.goal)}</b></div>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
             <button class="btn gold mini" data-act="reroll" ${S.gold < rerollCost ? 'disabled' : ''}>Reroll $${rerollCost}</button>
-            <button class="btn ${nextSpec.isAudit ? 'cinnabar' : 'verd'} mini" data-act="nextStage">Start ${esc(nextSpec.label)} ›</button>
+            <button class="btn ${nextSpec.isAudit ? 'cinnabar' : 'verd'} mini" data-act="nextStage">${nextSpec.isAudit ? 'Face the Audit' : 'Next Vigil'} ›</button>
           </div>
         </div>
 
         ${auditPreviewHtml}
 
-        <div class="info-strip ${anyTargeting ? 'demo' : ''}">
-          <div>${guideMsg}</div>
-        </div>
+        ${guideMsg ? `<div class="shop-guide">${guideMsg}<button class="btn mini wood" data-act="cancelPick">Cancel</button></div>` : ''}
 
         <div class="shop-body">
           <div class="shop-cards">${cardsHtml}</div>
@@ -1678,9 +1720,9 @@ const TileForge = (() => {
                 </div>
               </div>
               <div class="wb-crafts">
-                <button class="btn mini ${S.shopMode === 'burn' ? 'lapis' : 'cinnabar'}" data-act="startBurn" ${S.gold < burnCost || S.bag.length <= MIN_BAG_SIZE ? 'disabled' : ''}>${S.shopMode === 'burn' ? 'Cancel Burn' : `🔥 Burn Tile ($${burnCost})`}</button>
-                <button class="btn mini ${S.shopMode === 'clone' ? 'lapis' : 'verd'}" data-act="startClone" ${S.gold < cloneCost ? 'disabled' : ''}>${S.shopMode === 'clone' ? 'Cancel Clone' : `📑 Clone +1 ($${cloneCost})`}</button>
-                <button class="btn mini ${S.shopMode === 'fuse' ? 'lapis' : 'gold'}" data-act="startFuse" ${noFuse || S.gold < fuseCost ? 'disabled' : ''}>${noFuse ? '🔒 Fuse Locked' : S.shopMode === 'fuse' ? 'Cancel Fuse' : `🔗 Fuse 2 Tiles ($${fuseCost})`}</button>
+                <button class="craft ${S.shopMode === 'burn' ? 'on' : ''}" data-act="startBurn" ${S.gold < burnCost || S.bag.length <= MIN_BAG_SIZE ? 'disabled' : ''} data-tip-title="Burn" data-tip-text="Remove one copy of a letter from your bag, so your good letters come up more often. Your bag keeps at least ${MIN_BAG_SIZE} tiles.">🔥 <b>$${burnCost}</b></button>
+                <button class="craft ${S.shopMode === 'clone' ? 'on' : ''}" data-act="startClone" ${S.gold < cloneCost ? 'disabled' : ''} data-tip-title="Clone" data-tip-text="Add a plain copy of a letter to your bag (without its forges).">⧉ <b>$${cloneCost}</b></button>
+                <button class="craft ${S.shopMode === 'fuse' ? 'on' : ''}" data-act="startFuse" ${noFuse || S.gold < fuseCost ? 'disabled' : ''} data-tip-title="Fuse" data-tip-text="${noFuse ? 'Locked on this Stake.' : 'Join two letters into one tile (like T + H = TH). Points and forges add together.'}">🔗 <b>${noFuse ? '🔒' : `$${fuseCost}`}</b></button>
               </div>
             </div>
             <div class="wb-tiles">
@@ -1702,6 +1744,7 @@ const TileForge = (() => {
     app.classList.toggle('scale-broken', !!S.broken);
     const spec = stageSpec(S.terrace, S.stageInTerrace, S.audit);
     main.innerHTML = S.phase === 'shop' ? renderShop(spec) : renderPlay(spec);
+    MUSIC.setScene(S.phase === 'shop' ? 'shop' : isAudit() ? 'audit' : 'play');
   }
 
   function handleAction(act, arg) {
@@ -1743,6 +1786,7 @@ const TileForge = (() => {
         render();
         return;
       case 'cancelSwap': S.swapSet = null; render(); return;
+      case 'cancelPick': S.shopSel = null; S.shopMode = null; S.fuseFirstUid = null; hideTip(); SFX.drop(); render(); return;
       case 'swapAll': {
         if (S.busy || S.broken || S.phase !== 'play' || S.swapsLeft <= 0) return;
         if (!S.hand.length) {
@@ -1932,6 +1976,11 @@ const TileForge = (() => {
       if (e.target && e.target.id === 'tf-scale-slider') {
         setGoalScale(+e.target.value);
       }
+      if (e.target && (e.target.id === 'tf-vol-music' || e.target.id === 'tf-vol-sfx')) {
+        VOL[e.target.id === 'tf-vol-music' ? 'music' : 'sfx'] = +e.target.value;
+        applyVol();
+        if (e.target.id === 'tf-vol-sfx') SFX.pick();
+      }
     });
 
     app.addEventListener('click', e => {
@@ -1944,9 +1993,22 @@ const TileForge = (() => {
       }
       const actEl = e.target.closest('[data-act]');
       if (actEl) {
-        if (actEl.disabled) return;
+        if (actEl.disabled) {
+          if (lastPtr !== 'mouse' && actEl.dataset.tipText) showTipFor(actEl);
+          return;
+        }
         handleAction(actEl.dataset.act, actEl.dataset.arg);
+        // the card you just picked explains itself
+        if (actEl.dataset.act === 'pickCard' && S.shopMode === 'card') {
+          const card = document.querySelector(`[data-card-idx="${actEl.dataset.arg}"]`);
+          if (card) showTipFor(card);
+        } else if (lastPtr !== 'mouse') hideTip();
         return;
+      }
+      if (lastPtr !== 'mouse') {
+        const tipEl = e.target.closest('.candle-head[data-tip-text]');
+        if (tipEl) { showTipFor(tipEl); return; }
+        hideTip();
       }
       if (e.target.id === 'modal') {
         closeModal();
@@ -1959,7 +2021,7 @@ const TileForge = (() => {
         if (S.phase === 'shop') {
           if (S.shopMode === 'card' && S.shopSel !== null) applyCardToTile(S.shopSel, uid);
           else if (S.shopMode === 'burn' || S.shopMode === 'clone' || S.shopMode === 'fuse') applyWorkbenchCraft(uid);
-          else showToast('Pick a card (or Burn/Clone/Fuse) first!');
+          else { showTipFor(tileEl); SFX.pick(); }
           return;
         }
         if (tileEl.closest('.bag-grid')) return;
@@ -2088,6 +2150,7 @@ const TileForge = (() => {
     app.addEventListener('pointerup', e => finishTouchDrag(e, true));
     app.addEventListener('pointercancel', e => finishTouchDrag(e, false));
 
+    window.addEventListener('pointerdown', e => { lastPtr = e.pointerType || 'mouse'; }, { capture: true });
     app.addEventListener('pointerover', e => {
       if (e.pointerType !== 'mouse') return;
       const el = e.target.closest('[data-tip-text]');
@@ -2097,6 +2160,7 @@ const TileForge = (() => {
 
     app.addEventListener('pointerout', e => {
       if (e.pointerType !== 'mouse') return;
+      if (!e.target.isConnected) return; // the screen redrew under a still mouse
       if (!e.relatedTarget || !e.relatedTarget.closest || !e.relatedTarget.closest('[data-tip-text]')) {
         hideTip();
       }

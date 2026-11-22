@@ -24,6 +24,31 @@ sh web/deploy.sh
 
 Builds `tile-forge.html`, copies it to `web/public/tileforge/index.html`, and runs `wrangler deploy`.
 
+## Reading the forges
+
+Every forge is a glyph: what it does, plus an arrow toward the tile it hits. Hover (desktop) or tap
+(phone) a card for the full explanation.
+
+| Glyph | Means |
+|---|---|
+| `×2` | this tile scores ×2 (no arrow = itself) |
+| `◀×2` / `×2▶` | the tile to the left / right scores ×2 |
+| `◀×2▶` | the whole word scores ×2 (both arrows = everything) |
+| `+40`, `◀+30` | extra points, on itself or a neighbour |
+| `↻` | scores one extra time |
+| flame | brings candlelight (×3) to a slot |
+
+Colours: blue points, red multiply, purple replay, gold light and money, green combos, clones and wilds.
+
+**Candlelight:** a real candle sits over one slot (×3) and moves after every word; the slots beside
+it glow warm (×2). Empty slots show their multiplier, and every flame flickers on its own rhythm.
+
+## Sound
+
+Music and effects come from *The Scriptorium Vigil* (`src/audio/loopB/C/D/E/G.mp3`, embedded by
+`build.py`): G while playing, B in the Forge, C during Audits, D when a stage is cleared and E when
+you run out of words. Menu → Sound has Music and Effects sliders, saved on the device.
+
 ## Core Mechanics
 
 - **Letter-Wide Forging:** Shop cards upgrade **ALL copies** of a letter in your bag (grouped as `×N` Letter Stacks on the Workbench). Mix `+Score`, `Multiply`, `Replay`, stackable `Candlelight` (`WARM ×2`, `BRIGHT ×3`, `BLAZING ×6+`), `Clone`, `Forge Combo` (digraphs/trigraphs), and `Wild` upgrades.
@@ -39,6 +64,8 @@ Builds `tile-forge.html`, copies it to `web/public/tileforge/index.html`, and ru
 |---|---|
 | `src/template.html` | HTML shell with bundled inline mount targets |
 | `src/styles.css` | Candlelit desk, verdigris shop, menu modal, and mobile `100dvh` CSS |
+| `src/audio.js` | Sound effects and music (shared with The Scriptorium Vigil) |
+| `src/audio/` | Music loops, embedded at build time |
 | `src/core.js` | ENABLE lexicon unpacker, goal scaling, 15 Audits + anti-spam Audits, Candlelight, `DICT_DEFS` |
 | `src/tile_forge.js` | Tile Forge gameplay engine, 31 upgrades, 6 Stakes, drag-and-drop, and Shop UI |
 | `src/lexicon.packed.txt` | Prefix-packed ~168k ENABLE Scrabble lexicon |
