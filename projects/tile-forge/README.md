@@ -68,7 +68,11 @@ it glow warm (×2). Empty slots show their multiplier, and every flame flickers 
 - **One-word clears:** when a single word covers the whole goal, the choir swells and a censer swings
   across the screen. Ordinary clears just chime. The censer is painted like the rest of the game (flat
   gold, ink outline, flat shadow): a round globe whose four little bells hang down and jingle as it
-  swings, trailing round beads of smoke and a few embers.
+  swings. Its smoke is real smoke on a canvas: soft see-through puffs leave the globe 60 times a second,
+  rise, curl, widen and fade over about three seconds, with a few glowing embers. The puff pictures are
+  made in code (no image files), the canvas is half resolution and holds at most 240 puffs, so it stays
+  light on phones; the canvas goes away once the smoke has faded. Browsers without canvas get the
+  censer with no smoke.
 - **Score smoke:** smoke rises behind a word that passes the goal, higher at 10×, 100× and 1000× over.
   Smoke over the whole screen, the glitch and the white-out come only with an infinite score.
 - **Your guardian angel** is a glowing ball of light (no figure), on the page and on every screen.

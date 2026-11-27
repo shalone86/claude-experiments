@@ -68,30 +68,112 @@ function embers(x, y, n = 14, spread = 120) {
       { duration: dur, delay: Math.random() * 250, easing: 'cubic-bezier(.2,.6,.4,1)', fill: 'backwards' }).onfinish = () => e.remove();
   }
 }
-// The censer's incense: small painted beads of smoke that climb in a twisting curl, and a few embers.
-function incenseBead(x, y) {
-  const d = document.createElement('div'); d.className = 'incense';
-  d.style.left = x + 'px'; d.style.top = y + 'px';
-  document.body.appendChild(d);
-  const ph = Math.random() * Math.PI * 2, life = 1.6, frames = [];
-  for (let i = 0; i <= 8; i++) {
-    const a = i / 8, age = a * life;
-    const r = (2 + 5.5 * Math.sin(a * Math.PI)) * (a < 0.8 ? 1 : (1 - a) / 0.2);
-    frames.push({ transform: `translate(${(13 * a * Math.sin(age * 7 + ph)).toFixed(1)}px,${(-84 * a).toFixed(1)}px) scale(${(r / 7.5).toFixed(3)})` });
+// ---- The censer's incense: real smoke on a canvas ----
+// A soft puff texture is made once in code (no image files): about twenty faint round blobs piled
+// together, so each puff is uneven like smoke. A seeded random keeps it the same on every device.
+const SMOKE_RGB = '214,206,192';
+let smokeTex = null;
+function smokePuffTex(seed) {
+  const N = 128, c = document.createElement('canvas');
+  c.width = c.height = N;
+  const g = c.getContext && c.getContext('2d');
+  if (!g) return null;
+  let s = seed * 9301 + 49297;
+  const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 22; i++) {
+    const a = rnd() * Math.PI * 2, d = Math.pow(rnd(), 0.7) * 30, r = 10 + rnd() * 20;
+    const x = N / 2 + Math.cos(a) * d, y = N / 2 + Math.sin(a) * d * 0.8;
+    const gr = g.createRadialGradient(x, y, 0, x, y, r);
+    gr.addColorStop(0, `rgba(${SMOKE_RGB},.2)`);
+    gr.addColorStop(1, `rgba(${SMOKE_RGB},0)`);
+    g.fillStyle = gr;
+    g.fillRect(0, 0, N, N);
   }
-  d.animate(frames, { duration: life * 1000, easing: 'linear' }).onfinish = () => d.remove();
+  return c;
 }
-function incenseEmber(x, y) {
-  const e = document.createElement('div'); e.className = 'incense-ember';
-  e.style.left = x + 'px'; e.style.top = y + 'px';
-  document.body.appendChild(e);
-  const vx = Math.random() * 2 - 1, vy = Math.random() * 2 - 1, frames = [];
-  for (let i = 0; i <= 6; i++) {
-    const a = i / 6;
-    frames.push({ transform: `translate(${(vx * 26 * a).toFixed(1)}px,${(-(18 + vy * 10) * a + 30 * a * a).toFixed(1)}px) scale(${(1 - 0.6 * a).toFixed(2)})`,
-      background: a < 0.5 ? '#ffd66e' : '#ff9632' });
+function sparkTex() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 16;
+  const g = c.getContext && c.getContext('2d');
+  if (!g) return null;
+  const gr = g.createRadialGradient(8, 8, 0, 8, 8, 8);
+  gr.addColorStop(0, 'rgba(255,236,170,1)');
+  gr.addColorStop(0.35, 'rgba(255,170,60,.85)');
+  gr.addColorStop(1, 'rgba(255,110,20,0)');
+  g.fillStyle = gr;
+  g.fillRect(0, 0, 16, 16);
+  return c;
+}
+// One canvas for one swing. Puffs leave the censer carrying a little of its swing, rise, slow down,
+// widen and fade; a gentle flow (a sideways sway that changes with height) bends them into curling
+// wisps. Drawn at half resolution, since smoke is soft, and at most 240 puffs, to stay light on phones.
+// Returns null where there's no canvas (the censer still swings).
+function incenseSmoke() {
+  if (!smokeTex) {
+    const t = [1, 2, 3].map(smokePuffTex), sp = sparkTex();
+    if (t.some(x => !x) || !sp) return null;
+    smokeTex = { puffs: t, spark: sp };
   }
-  e.animate(frames, { duration: 900, easing: 'linear' }).onfinish = () => e.remove();
+  const cv = document.createElement('canvas');
+  const g = cv.getContext && cv.getContext('2d');
+  if (!g) return null;
+  const SC = 0.5, W = window.innerWidth, H = window.innerHeight;
+  cv.width = Math.ceil(W * SC); cv.height = Math.ceil(H * SC);
+  cv.className = 'incense-smoke';
+  cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  document.body.appendChild(cv);
+  const puffs = [], sparks = [];
+  let ending = false, last = performance.now(), T = 0;
+  const draw = (img, x, y, size, rot, alpha) => {
+    const k = size * SC / img.width, c = Math.cos(rot) * k, s = Math.sin(rot) * k;
+    g.globalAlpha = alpha;
+    g.setTransform(c, s, -s, c, x * SC, y * SC);
+    g.drawImage(img, -img.width / 2, -img.height / 2);
+  };
+  const frame = (now) => {
+    const dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
+    last = now; T += dt;
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.globalAlpha = 1;
+    g.globalCompositeOperation = 'source-over';
+    g.clearRect(0, 0, cv.width, cv.height);
+    for (let i = puffs.length - 1; i >= 0; i--) if ((puffs[i].age += dt) >= puffs[i].life) puffs.splice(i, 1);
+    for (const p of puffs) {
+      p.vy -= 30 * dt;                                       // warm smoke rises
+      p.vx -= p.vx * 1.5 * dt; p.vy -= p.vy * 0.8 * dt;      // and slows in the air
+      p.vx += Math.sin(p.y * 0.04 + T * 1.3) * 38 * dt;      // the flow that curls it
+      p.vy += Math.cos(p.x * 0.035 - T * 1.1) * 14 * dt;
+      p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.spin * dt;
+      const a = p.age / p.life;
+      draw(smokeTex.puffs[p.tex], p.x, p.y, p.s0 + (p.s1 - p.s0) * Math.sqrt(a), p.rot,
+        p.op * Math.min(1, a * 5) * Math.pow(1 - a, 1.6));
+    }
+    g.globalCompositeOperation = 'lighter';                  // sparks glow
+    for (let i = sparks.length - 1; i >= 0; i--) {
+      const p = sparks[i];
+      if ((p.age += dt) >= p.life) { sparks.splice(i, 1); continue; }
+      p.vy += 90 * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+      const a = p.age / p.life;
+      draw(smokeTex.spark, p.x, p.y, 7 * (1 - a * 0.5), 0, 1 - a);
+    }
+    if (ending && !puffs.length && !sparks.length) { cv.remove(); return; }
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+  return {
+    // a puff from the censer at (x, y), which is moving at (vx, vy) px a second
+    puff(x, y, vx, vy) {
+      if (puffs.length >= 240) return;
+      puffs.push({ x: x + (Math.random() - 0.5) * 10, y, vx: vx * 0.25 + (Math.random() - 0.5) * 12, vy: vy * 0.25 - 15 - Math.random() * 20,
+        age: 0, life: 2.4 + Math.random() * 1.4, s0: 10 + Math.random() * 8, s1: 70 + Math.random() * 50,
+        rot: Math.random() * Math.PI * 2, spin: (Math.random() - 0.5) * 1.2, op: 0.3 + Math.random() * 0.2, tex: Math.floor(Math.random() * 3) });
+    },
+    spark(x, y) {
+      sparks.push({ x, y, vx: (Math.random() - 0.5) * 60, vy: -40 - Math.random() * 60, age: 0, life: 0.5 + Math.random() * 0.5 });
+    },
+    // the censer has gone; the canvas goes once the last smoke fades
+    end() { ending = true; }
+  };
 }
 // A thurible swings across the screen trailing incense: one word cleared the whole goal.
 function censerSweep() {
@@ -101,7 +183,8 @@ function censerSweep() {
   // the chains hang from (31, 3.6) on screen; the smoke leaves the top of the globe, 108.5 px below
   const OX = 31, pivotY = H * 0.22, L = 108.5, dur = 2800, t0 = performance.now();
   const swing = (k) => Math.sin(k * Math.PI * 5) * 0.55;
-  let last = 0;
+  const fx = incenseSmoke();
+  let px = null, py = null, pt = 0, due = 0;
   const step = (t) => {
     const k = Math.min(1, (t - t0) / dur), x = -60 + (W + 120) * k, th = swing(k);
     const vel = (swing(k + 0.004) - swing(k - 0.004)) / (0.008 * dur / 1000);   // radians a second
@@ -116,13 +199,22 @@ function censerSweep() {
       const ang = -th * 180 / Math.PI + vel * 180 / Math.PI * (0.12 + 0.05 * bk) - 7 * Math.sin(sec * 11 + bk * 1.7 + side);
       b.setAttribute('transform', `rotate(${ang.toFixed(1)})`);
     });
-    if (t - last > 70) {
-      last = t;
-      const bx = x - L * Math.sin(th), by = pivotY + L * Math.cos(th);
-      incenseBead(bx, by);
-      if (Math.random() < 0.25) incenseEmber(bx, by);
+    // smoke leaves the top of the globe 60 times a second (whatever the screen's frame rate), spread
+    // along the path the globe took since the last frame, carrying a little of the censer's own speed
+    const bx = x - L * Math.sin(th), by = pivotY + L * Math.cos(th);
+    if (fx && px !== null && t > pt) {
+      const s = (t - pt) / 1000, vx = (bx - px) / s, vy = (by - py) / s;
+      due += s * 60;
+      for (let n = Math.floor(due), i = 1; i <= n; i++) {
+        const f = i / n;
+        fx.puff(px + (bx - px) * f, py + (by - py) * f, vx, vy);
+        if (Math.random() < 0.18) fx.spark(px + (bx - px) * f, py + (by - py) * f);
+      }
+      due -= Math.floor(due);
     }
-    if (k < 1) requestAnimationFrame(step); else el.remove();
+    px = bx; py = by; pt = t;
+    if (k < 1) requestAnimationFrame(step);
+    else { el.remove(); if (fx) fx.end(); }
   };
   requestAnimationFrame(step);
 }
