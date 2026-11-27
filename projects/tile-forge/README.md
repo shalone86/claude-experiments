@@ -2,7 +2,16 @@
 
 A casual-friendly yet deep "Scrabble Balatro" word roguelike spun out from *The Scriptorium Vigil*. Place tiles onto the 5-slot candlelit line, spell any valid Scrabble word for a single **Word Score**, and upgrade letters **Letter-Wide** in the Shop so every copy of a letter in your bag powers up together.
 
-**Status:** Playable web prototype live on desktop and portrait mobile (`100dvh` no-scroll play screen).
+## Status and next steps
+
+- **Status:** Playable web game in the painted look, on desktop and portrait phones (`100dvh` no-scroll
+  play screen). Live at https://shalonely.com/tileforge/ once `sh web/deploy.sh` has been run.
+- **Last worked on:** 2026-11-27. The painted look for the whole game, real censer smoke, smooth skies,
+  a blinding Beatitude at an infinite score, a tidier Menu, the home screen showing a newly picked
+  order, and painted tile icons.
+- **Next steps:**
+  1. After merging to `main`, publish with `sh web/deploy.sh` and check it on a phone.
+  2. Play-test endless balance (each stage's goal grows 30% in digits).
 
 ## Play Online
 
@@ -39,6 +48,9 @@ since wide hard steps there look rough.
   to the right, away from the big desk candle. Tiles on the line lean their shadow away from the line's
   own candle (`--d` on each slot). The candles throw a short shadow too.
 - To go back to the old look, drop `painted.css` from `build.py`.
+- **Icons:** the favicon and app icons are one painted tile ("T", in the game's EB Garamond) with the
+  ink outline, ink lip and leaning shadow; the app icon adds a banded candle flame. Redraw them with
+  `python3 art-src/make_icons.py`, then `python3 build.py`.
 
 **Redrawing the pictures:** `blender -b -P art-src/build_scene.py -P art-src/build_backgrounds.py -- --no-render --out renders`,
 then `python3 art-src/to_webp.py renders` and `python3 build.py`.
@@ -130,6 +142,8 @@ you run out of words. Menu → Sound has Music and Effects sliders, saved on the
 | `src/painted.css` | The painted look on top: colour bands, ink outlines, 2D shadows |
 | `src/art/` | The three painted pictures (desk wide, desk tall, vellum), embedded at build time |
 | `art-src/` | Blender scripts that render those pictures, and `to_webp.py` to shrink them |
+| `art-src/make_icons.py` | Draws the painted tile icons: the favicon (put into `src/template.html`) and the app icons in `web/app/` |
+| `web/app/` | The installable app's manifest, service worker and icons, copied next to the game by `deploy.sh` |
 | `src/audio.js` | Sound effects and music (shared with The Scriptorium Vigil) |
 | `src/audio/` | Music loops, embedded at build time |
 | `src/scenes.js` | Home, win, lose and endless-end screens, the censer, and first-time tips |

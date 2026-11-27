@@ -2076,6 +2076,9 @@ const TileForge = (() => {
         initState();
         SFX.chord();
         render();
+        // on the home screen, its Order button shows the order just picked
+        const homeOrder = document.querySelector('#scene.home [data-act="menu"]');
+        if (homeOrder) homeOrder.innerHTML = homeData().stake;
         showToast(`${getStake().icon} Started ${getStake().name}!`);
         return;
       }

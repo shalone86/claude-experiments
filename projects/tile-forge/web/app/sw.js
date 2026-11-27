@@ -1,7 +1,7 @@
 // Tile Forge's own service worker, scoped to /tileforge/ so it stays a separate app from
 // Shalone's Daily Beats (whose worker covers the rest of shalonely.com).
 // Network first, so new deploys show up straight away; the cached copy is only for offline.
-const CACHE = 'tileforge-v1';
+const CACHE = 'tileforge-v2'; // bump when the icons or manifest change
 const SHELL = ['/tileforge/', '/tileforge/manifest.webmanifest', '/tileforge/icon-192.png', '/tileforge/icon-512.png'];
 
 self.addEventListener('install', (event) => {

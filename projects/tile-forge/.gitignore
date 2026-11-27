@@ -2,3 +2,4 @@
 index.html
 tile-forge.html
 .DS_Store
+__pycache__/
