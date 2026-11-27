@@ -77,6 +77,12 @@ it glow warm (×2). Empty slots show their multiplier, and every flame flickers 
   censer with no smoke.
 - **Score smoke:** smoke rises behind a word that passes the goal, higher at 10×, 100× and 1000× over.
   Smoke over the whole screen, the glitch and the white-out come only with an infinite score.
+- **Beatitude (an infinite score):** after the glitch burns to white, the white clears slowly into a
+  blinding sun with two sets of God rays turning against each other, rings of light pulsing out every
+  seven seconds, motes of light bursting from the sun and then drifting up, and the vellum card rising
+  into view with its lines arriving one by one, to a high shimmer of bells. All CSS plus one small canvas
+  for the motes (`showBeatitude()` and `beatificMotes()` in `src/core.js`, the `bf-*` rules in
+  `src/painted.css`); with reduced motion it all holds still.
 - **Your guardian angel** is a glowing ball of light (no figure), on the page and on every screen.
   It bobs like a fairy and sheds tiny sparkles now and then. No motion and no sparkles when the
   device asks for reduced motion.

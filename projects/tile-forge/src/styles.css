@@ -2272,20 +2272,6 @@ button:disabled {
 #beatific-layer.open {
   display: flex;
 }
-.beatific-rays {
-  position: absolute;
-  left: 50%;
-  top: 35%;
-  width: 240vmax;
-  height: 240vmax;
-  margin: -120vmax 0 0 -120vmax;
-  background: repeating-conic-gradient(from 0deg, rgba(255, 255, 255, 0.65) 0 4deg, transparent 4deg 12deg);
-  animation: spin 38s linear infinite;
-  pointer-events: none;
-}
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
 .beatific-card {
   position: relative;
   z-index: 2;

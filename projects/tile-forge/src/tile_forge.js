@@ -1506,7 +1506,7 @@ const TileForge = (() => {
       return `
         <button class="stake-card stake-${st.id} ${isCur ? 'active' : ''} ${isPicked ? 'picked' : ''}" data-act="pickStake" data-arg="${st.id}">
           <div class="stake-card-top">
-            <span class="stake-card-name">${st.icon} ${esc(st.name)}</span>
+            <span class="stake-card-name">${st.icon} ${esc(st.short)}<span class="sk-o"> Order</span></span>
             <span class="stake-badges">
               ${isCur ? '<span class="stake-badge cur">ACTIVE</span>' : ''}
               ${isCleared ? '<span class="stake-badge cleared">✓ CLEARED</span>' : ''}
@@ -1560,7 +1560,7 @@ const TileForge = (() => {
 
     const footHtml = changedStake
       ? `<button class="btn wood" data-act="closeModal">Cancel</button>
-         <button class="btn gold" data-act="applyStake">Start New Run · ${esc(picked.name)}</button>`
+         <button class="btn gold start-order" data-act="applyStake"><span>Start New Run</span><small>${picked.icon} ${esc(picked.name)}</small></button>`
       : `<button class="btn gold" data-act="closeModal">Done</button>`;
 
     showModal('Tile Forge · Menu', bodyHtml, footHtml);

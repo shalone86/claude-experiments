@@ -508,28 +508,110 @@ function closeModal() {
   if (tip) tip.classList.remove('show');
 }
 
+// ---- Beatitude: the payoff for an infinite score, which almost nobody will ever see ----
+// The glitch burns to white; under the white, the light is already blazing. As it fades: a
+// blinding sun, two sets of God rays turning slowly against each other, rings of light pulsing
+// out, motes of light bursting from the sun and then drifting up, and last the vellum card
+// rising into view with its lines arriving one by one. No characters, only light.
 function showBeatitude({ word, stageLabel, wordsPlayed, summary, onRestart }) {
   SFX.fanfare();
   SFX.bell();
   const layer = document.getElementById('beatific-layer');
   layer.innerHTML = `
-    <div class="beatific-rays"></div>
+    <div class="bf-bg" aria-hidden="true">
+      <div class="bf-rays bf-rays-a"></div>
+      <div class="bf-rays bf-rays-b"></div>
+      <div class="bf-ring" style="--d:1.1s"></div>
+      <div class="bf-ring" style="--d:1.5s"></div>
+      <div class="bf-ring" style="--d:1.9s"></div>
+      <div class="bf-sun"></div>
+      <div class="bf-flash"></div>
+    </div>
     <div class="beatific-card">
-      <div style="font-family:Cinzel,serif;font-weight:900;font-size:11px;letter-spacing:.2em;color:#7a5512">TILE FORGE · ${esc(stageLabel.toUpperCase())} · SCALE SHATTERED</div>
-      <h1>Beatitude!</h1>
-      <div class="beatific-inf">∞</div>
-      <div style="font-size:17px"><b>“${esc(word)}”</b> broke the Scriptorium scale — score overflowed beyond counting! The game cannot go on.</div>
-      <div style="font-size:14.5px;color:#5b4128">${esc(summary)} (${wordsPlayed} word${wordsPlayed === 1 ? '' : 's'} played)</div>
-      <div class="beatific-btns">
+      <div class="bf-kicker" style="--i:0">TILE FORGE · ${esc(stageLabel.toUpperCase())} · SCALE SHATTERED</div>
+      <h1 style="--i:1">Beatitude!</h1>
+      <div class="bf-inf" style="--i:2"><div class="beatific-inf">∞</div></div>
+      <div class="bf-line big" style="--i:3"><b>“${esc(word)}”</b> broke the Scriptorium scale — score overflowed beyond counting! The game cannot go on.</div>
+      <div class="bf-line small" style="--i:4">${esc(summary)} (${wordsPlayed} word${wordsPlayed === 1 ? '' : 's'} played)</div>
+      <div class="beatific-btns" style="--i:5">
         <button class="btn gold" id="bf-restart">↺ New Run</button>
       </div>
     </div>
   `;
   layer.classList.add('open');
+  beatificMotes(layer.querySelector('.bf-bg'));
+  // a high shimmer with each ring of light
+  [1100, 1500, 1900, 2300].forEach((t, i) => setTimeout(() => {
+    if (layer.classList.contains('open')) SFX.tone([1046.5, 1318.5, 1568, 2093][i], 'sine', 1.6, 0.03);
+  }, t));
   document.getElementById('bf-restart').onclick = () => {
     hideBeatitude();
     onRestart && onRestart();
   };
+}
+
+// Motes of light for the Beatitude, on a canvas behind the card: a burst out of the sun as the white
+// clears, then a slow drift of twinkling motes rising for as long as the screen is open. Drawn at
+// one pixel per CSS pixel with a small glow picture; at most about 110 at once. Skipped where there's
+// no canvas or the player asks for less motion.
+function beatificMotes(host) {
+  if (!host || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+  const cv = document.createElement('canvas');
+  const g = cv.getContext && cv.getContext('2d');
+  if (!g) return;
+  const W = window.innerWidth, H = window.innerHeight;
+  cv.width = W; cv.height = H; cv.className = 'bf-motes';
+  // the glow picture: a white centre fading through warm gold
+  const sp = document.createElement('canvas'); sp.width = sp.height = 32;
+  const sg = sp.getContext('2d');
+  const gr = sg.createRadialGradient(16, 16, 0, 16, 16, 16);
+  gr.addColorStop(0, 'rgba(255,255,255,1)');
+  gr.addColorStop(0.25, 'rgba(255,246,210,.85)');
+  gr.addColorStop(1, 'rgba(255,214,120,0)');
+  sg.fillStyle = gr; sg.fillRect(0, 0, 32, 32);
+  host.insertBefore(cv, host.querySelector('.bf-sun'));
+  const sunY = H * (W / H < 0.8 ? 0.15 : 0.2), sunX = W / 2;
+  const motes = [];
+  const drifter = (anywhere) => ({
+    x: Math.random() * W, y: anywhere ? Math.random() * H : H + 10,
+    vx: (Math.random() - 0.5) * 8, vy: -(8 + Math.random() * 22),
+    r: 1.5 + Math.random() * 3.2, a: 0.35 + Math.random() * 0.5, tw: 1 + Math.random() * 2.5, ph: Math.random() * 6.3,
+    age: 0, life: Infinity, drag: 0
+  });
+  for (let i = 0; i < 40; i++) motes.push(drifter(true));
+  let burst = false, last = performance.now(), T = 0;
+  const frame = (now) => {
+    if (!cv.isConnected) return;
+    const dt = Math.min(0.05, (now - last) / 1000); last = now; T += dt;
+    if (!burst && T > 1.0) {   // the white is clearing: light bursts out of the sun
+      burst = true;
+      for (let i = 0; i < 70; i++) {
+        const a = Math.random() * Math.PI * 2, sp0 = 90 + Math.random() * 300;
+        motes.push({ x: sunX, y: sunY, vx: Math.cos(a) * sp0, vy: Math.sin(a) * sp0, r: 1.5 + Math.random() * 3.5,
+          a: 0.7 + Math.random() * 0.3, tw: 3 + Math.random() * 4, ph: Math.random() * 6.3, age: 0, life: 2 + Math.random() * 2.5, drag: 1.1 });
+      }
+    }
+    g.clearRect(0, 0, W, H);
+    g.globalCompositeOperation = 'lighter';
+    for (let i = motes.length - 1; i >= 0; i--) {
+      const m = motes[i];
+      m.age += dt;
+      m.vx -= m.vx * m.drag * dt; m.vy -= m.vy * m.drag * dt;
+      if (m.drag) m.vy -= 12 * dt;                                     // burst motes float up as they slow
+      m.x += (m.vx + Math.sin(T * 0.7 + m.ph) * 6) * dt; m.y += m.vy * dt;
+      const fade = m.life === Infinity ? 1 : Math.max(0, 1 - m.age / m.life);
+      if (fade <= 0 || m.y < -20) {
+        if (m.life === Infinity) motes[i] = drifter(false); else motes.splice(i, 1);
+        continue;
+      }
+      g.globalAlpha = m.a * fade * (0.55 + 0.45 * Math.sin(T * m.tw + m.ph));
+      const d = m.r * 4;
+      g.drawImage(sp, m.x - d / 2, m.y - d / 2, d, d);
+    }
+    g.globalAlpha = 1;
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
 }
 
 function hideBeatitude() {

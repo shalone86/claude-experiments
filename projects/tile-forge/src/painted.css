@@ -448,7 +448,17 @@ html, body { background: #1a0f07; }
 .stake-card:hover { box-shadow: 3px 4px 0 var(--ink); }
 .stake-card.picked { background: linear-gradient(180deg, #fffbe8 0 50%, #f4df9e 50%); outline-color: var(--lapis); }
 .stake-card.active { box-shadow: 2px 3px 0 var(--ink), inset 0 0 0 2px rgba(46, 132, 108, 0.55); }
-.stake-badge { border: 1px solid var(--ink); }
+.stake-badge { border: 1px solid var(--ink); white-space: nowrap; }
+/* the order's name never breaks; if the badges don't fit beside it, they drop to their own line */
+.stake-card-top { flex-wrap: wrap; row-gap: 4px; }
+.stake-card-name { white-space: nowrap; }
+.stake-badges { flex: none; margin-left: auto; }
+/* the menu's start button: what it does, then the order on a smaller second line */
+.btn.start-order { flex: 1.6; flex-direction: column; gap: 1px; padding: 5px 10px; line-height: 1.1; }
+.btn.start-order small { font-size: 12.5px; letter-spacing: 0; }
+@media (max-width: 600px) {
+  .stake-card-name .sk-o { display: none; }   /* the section heading already says Religious Orders */
+}
 #tip {
   background: var(--art-vellum) center / cover no-repeat, #fbf3dc;
   border: 2px solid var(--ink);
@@ -489,7 +499,94 @@ html, body { background: #1a0f07; }
 .scene.lose .bg { background: radial-gradient(ellipse 60% 40% at 50% 32%, #2a313d 20%, #212731 55%, rgba(33, 39, 49, 0) 85%), linear-gradient(180deg, #1b2029 25%, #141820 68%, #0c0f14 95%); }
 .scene.lose .speech { background: linear-gradient(180deg, #d9dde3 0 50%, #c3c9d2 50%); }
 .scene.rest .bg { background: linear-gradient(180deg, #0d1030 8%, #1c1a46 28%, #2a2058 43%, #48306e 56%, #6a3f78 67%, #9a5f6a 77%, #c9845a 87%, #f2c27a 97%); }
-#beatific-layer { background: radial-gradient(circle at 50% 35%, #fff 5%, #fff8dc 17%, #ffe399 34%, #ecba57 54%, #d6962a 74%, #7a4a12 94%); }
+/* ---- Beatitude: a blinding light for an infinite score (showBeatitude and beatificMotes in core.js) ----
+   Order of the light, back to front: the sky, two sets of God rays, rings of light, motes (canvas),
+   the sun, and a white flash that slowly clears. The card then rises out of the light. */
+#beatific-layer {
+  --sun-y: 20%;
+  background: radial-gradient(circle at 50% var(--sun-y), #fff 0%, #fff6d6 9%, #ffe08a 22%, #f4b445 40%, #d07a22 60%, #8a4012 80%, #3e1a08 100%);
+  justify-content: flex-start;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 16px 16px max(16px, 6vh);
+}
+@media (max-aspect-ratio: 4/5) { #beatific-layer { --sun-y: 15%; } }
+.bf-bg { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.bf-rays {
+  position: absolute; left: 50%; top: var(--sun-y);
+  width: 180vmax; height: 180vmax; margin: -90vmax 0 0 -90vmax; border-radius: 50%;
+  -webkit-mask-image: radial-gradient(circle closest-side, #000 0%, rgba(0, 0, 0, 0.8) 18%, rgba(0, 0, 0, 0.3) 55%, transparent 100%);
+  mask-image: radial-gradient(circle closest-side, #000 0%, rgba(0, 0, 0, 0.8) 18%, rgba(0, 0, 0, 0.3) 55%, transparent 100%);
+  opacity: 0; will-change: transform;
+}
+/* broad rays turning one way, fine rays turning the other, so the light shimmers where they cross */
+.bf-rays-a {
+  background: repeating-conic-gradient(from 0deg, rgba(255, 251, 230, 0) 0deg, rgba(255, 251, 230, 0.72) 5deg, rgba(255, 251, 230, 0) 10deg, rgba(255, 251, 230, 0) 20deg);
+  animation: bfRaysIn 2.6s ease-out 0.4s forwards, bfSpin 90s linear infinite;
+}
+.bf-rays-b {
+  background: repeating-conic-gradient(from 6deg, rgba(255, 255, 255, 0) 0deg, rgba(255, 255, 255, 0.5) 1.6deg, rgba(255, 255, 255, 0) 3.2deg, rgba(255, 255, 255, 0) 12deg);
+  animation: bfRaysIn 2.6s ease-out 0.9s forwards, bfSpin 140s linear infinite reverse;
+}
+@keyframes bfRaysIn { to { opacity: 1; } }
+@keyframes bfSpin { to { transform: rotate(360deg); } }
+/* three rings of light pulse out of the sun, again every seven seconds */
+.bf-ring {
+  position: absolute; left: 50%; top: var(--sun-y);
+  width: 30vmin; height: 30vmin; margin: -15vmin 0 0 -15vmin; border-radius: 50%;
+  border: 3px solid rgba(255, 255, 245, 0.95);
+  box-shadow: 0 0 22px 4px rgba(255, 240, 200, 0.7), inset 0 0 22px 4px rgba(255, 240, 200, 0.7);
+  opacity: 0; animation: bfRing 7s ease-out var(--d, 1s) infinite;
+}
+@keyframes bfRing {
+  0% { opacity: 0; transform: scale(0.35); }
+  4% { opacity: 0.95; }
+  40%, 100% { opacity: 0; transform: scale(5.5); }
+}
+.bf-motes { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* the sun: a white core in a wide bloom; it shrinks out of the white, then breathes */
+.bf-sun {
+  position: absolute; left: 50%; top: var(--sun-y);
+  width: 36vmin; height: 36vmin; margin: -18vmin 0 0 -18vmin; border-radius: 50%;
+  background: radial-gradient(circle closest-side, #fff 34%, rgba(255, 254, 244, 0.92) 44%, rgba(255, 244, 205, 0.55) 62%, rgba(255, 226, 150, 0) 100%);
+  animation: bfSunIn 3.4s cubic-bezier(0.2, 0.7, 0.2, 1) both, bfBreathe 4.5s ease-in-out 3.4s infinite;
+}
+.bf-sun::before {
+  content: ""; position: absolute; inset: -90%; border-radius: 50%;
+  background: radial-gradient(circle closest-side, rgba(255, 250, 228, 0.6), rgba(255, 236, 180, 0.22) 50%, rgba(255, 230, 160, 0));
+}
+@keyframes bfSunIn { from { transform: scale(2.6); } to { transform: scale(1); } }
+@keyframes bfBreathe { 50% { transform: scale(1.07); } }
+/* the white of the glitch lingers under the fading whiteout, so the light clears slowly */
+.bf-flash {
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% var(--sun-y), #fff 35%, rgba(255, 253, 245, 0.92) 70%, rgba(255, 248, 230, 0.85) 100%);
+  animation: bfFlash 3.8s ease-in both;
+}
+@keyframes bfFlash { from { opacity: 1; } to { opacity: 0; } }
+/* the card rises out of the light, then its lines arrive one by one */
+#beatific-layer .beatific-card {
+  margin-top: auto; flex: none;
+  box-shadow: 5px 6px 0 var(--ink), 14px 20px 0 rgba(80, 45, 0, 0.3), 0 0 70px 14px rgba(255, 246, 214, 0.6);
+  animation: bfCardRise 1.5s cubic-bezier(0.18, 0.8, 0.25, 1) 2s both;
+}
+@keyframes bfCardRise { from { opacity: 0; transform: translateY(80px) scale(0.94); } to { opacity: 1; transform: none; } }
+.beatific-card > * { animation: bfLineIn 0.8s ease-out both; animation-delay: calc(2.5s + var(--i, 0) * 0.2s); }
+@keyframes bfLineIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.bf-kicker { font-family: 'Cinzel', serif; font-weight: 900; font-size: 11px; letter-spacing: 0.2em; color: #7a5512; }
+.bf-line.big { font-size: 17px; }
+.bf-line.small { font-size: 14.5px; color: #5b4128; }
+@media (max-width: 600px) {
+  #beatific-layer .beatific-card { padding: 18px 16px; gap: 9px; }
+  #beatific-layer .beatific-card h1 { font-size: 44px; }
+  .bf-line.big { font-size: 16px; }
+  .bf-line.small { font-size: 13.5px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bf-rays, .bf-sun, #beatific-layer .beatific-card, .beatific-card > * { animation: none !important; }
+  .bf-rays { opacity: 1; }
+  .bf-flash, .bf-ring { display: none; }
+}
 .beatific-card {
   background: var(--art-vellum) center / cover no-repeat, #fffcf0;
   border: 2.5px solid var(--ink);
