@@ -27,6 +27,8 @@ Builds `tile-forge.html`, copies it to `web/public/tileforge/index.html`, and ru
 ## The look (painted, round 4)
 
 A flat painted 2D illustration: cel-shaded colour bands, bold sepia ink outlines, warm umber to cream.
+The full-screen skies (end, win, lose, the light at infinity) and the home vignette blend smoothly instead,
+since wide hard steps there look rough.
 
 - **Three pictures** (`src/art/*.webp`, about 115 KB): the desk with its stone wall and props (wide for
   screens wider than tall, tall for upright phones) and the ledger's vellum paper. They are rendered in

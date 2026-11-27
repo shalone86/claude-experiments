@@ -3,7 +3,8 @@
    - The desk, wall and props, and the page paper, are three painted pictures rendered in Blender
      (src/art/desk-wide.webp, desk-tall.webp, vellum.webp; build.py puts them inside the page).
      Everything else is drawn here in CSS, so it stays sharp and costs almost nothing to draw.
-   - Flat colour: gradients become two or three hard bands, like cel shading.
+   - Flat colour: gradients become two or three hard bands, like cel shading. The full-screen
+     skies and vignettes are the exception: they blend smoothly, since wide hard steps there look rough.
    - Bold sepia ink outlines, and two kinds of 2D shadow:
        the ink lip:     a hard, dark edge right under a thing (0 3px 0 ink)
        the cast shadow: two flat, see-through bands falling away from the light (the --cast-* lists)
@@ -56,7 +57,7 @@ html, body { background: #1a0f07; }
 }
 .scene.home .bg {
   background:
-    radial-gradient(ellipse 70% 45% at 50% 32%, rgba(26, 14, 6, 0.3) 0 55%, rgba(16, 9, 4, 0.62) 55% 80%, rgba(10, 6, 3, 0.82) 80%),
+    radial-gradient(ellipse 70% 45% at 50% 32%, rgba(26, 14, 6, 0.3) 30%, rgba(16, 9, 4, 0.62) 68%, rgba(10, 6, 3, 0.82) 92%),
     var(--art-desk-wide) center top / cover no-repeat, #170d06;
 }
 @media (max-aspect-ratio: 4/5) {
@@ -65,7 +66,7 @@ html, body { background: #1a0f07; }
   #app.boss-stage { background-image: linear-gradient(rgba(60, 10, 6, 0.45), rgba(30, 5, 3, 0.6)), var(--art-desk-tall); }
   .scene.home .bg {
     background-image:
-      radial-gradient(ellipse 70% 45% at 50% 32%, rgba(26, 14, 6, 0.3) 0 55%, rgba(16, 9, 4, 0.62) 55% 80%, rgba(10, 6, 3, 0.82) 80%),
+      radial-gradient(ellipse 70% 45% at 50% 32%, rgba(26, 14, 6, 0.3) 30%, rgba(16, 9, 4, 0.62) 68%, rgba(10, 6, 3, 0.82) 92%),
       var(--art-desk-tall);
   }
 }
@@ -472,7 +473,8 @@ html, body { background: #1a0f07; }
 .float { border: 1.5px solid var(--ink); box-shadow: 2px 3px 0 var(--ink); }
 
 /* ---------------------------------------------------------------------
-   Full-screen scenes: home on the painted desk; win, lose and endless in flat bands
+   Full-screen scenes: home on the painted desk; win, lose and endless skies blend smoothly
+   (same colours as the old flat bands), with the cards and buttons on them still flat
    --------------------------------------------------------------------- */
 .scene h1 { text-shadow: 0 3px 0 var(--ink), 3px 6px 0 rgba(8, 3, 0, 0.3); }
 .scene.home h1 { text-shadow: 0 3px 0 var(--ink), 4px 7px 0 rgba(8, 3, 0, 0.35); }
@@ -482,12 +484,12 @@ html, body { background: #1a0f07; }
   box-shadow: 3px 3px 0 var(--ink), var(--cast-desk-sm);
 }
 .scene .speech::before { border-bottom-color: var(--ink); top: -9px; }
-.scene.win .bg { background: radial-gradient(circle at 50% 28%, #fffdf4 0 12%, #fff3cf 12% 24%, #f3d98d 24% 40%, #dfd4ae 40% 56%, #b8c9e8 56% 76%, #8fa8d6 76% 90%, #7f9ccf 90%); }
+.scene.win .bg { background: radial-gradient(circle at 50% 28%, #fffdf4 6%, #fff3cf 18%, #f3d98d 32%, #dfd4ae 48%, #b8c9e8 66%, #8fa8d6 83%, #7f9ccf 95%); }
 .scene.win h1 { text-shadow: 0 2px 0 #fff, 3px 5px 0 rgba(120, 85, 18, 0.25); }
-.scene.lose .bg { background: radial-gradient(ellipse 60% 40% at 50% 32%, #2a313d 0 45%, #212731 45% 75%, transparent 75%), linear-gradient(180deg, #1b2029 0 55%, #141820 55% 82%, #0c0f14 82%); }
+.scene.lose .bg { background: radial-gradient(ellipse 60% 40% at 50% 32%, #2a313d 20%, #212731 55%, rgba(33, 39, 49, 0) 85%), linear-gradient(180deg, #1b2029 25%, #141820 68%, #0c0f14 95%); }
 .scene.lose .speech { background: linear-gradient(180deg, #d9dde3 0 50%, #c3c9d2 50%); }
-.scene.rest .bg { background: linear-gradient(180deg, #0d1030 0 20%, #1c1a46 20% 36%, #2a2058 36% 50%, #48306e 50% 62%, #6a3f78 62% 72%, #9a5f6a 72% 82%, #c9845a 82% 91%, #f2c27a 91%); }
-#beatific-layer { background: radial-gradient(circle at 50% 35%, #fff 0 10%, #fff8dc 10% 24%, #ffe399 24% 44%, #ecba57 44% 64%, #d6962a 64% 84%, #7a4a12 84%); }
+.scene.rest .bg { background: linear-gradient(180deg, #0d1030 8%, #1c1a46 28%, #2a2058 43%, #48306e 56%, #6a3f78 67%, #9a5f6a 77%, #c9845a 87%, #f2c27a 97%); }
+#beatific-layer { background: radial-gradient(circle at 50% 35%, #fff 5%, #fff8dc 17%, #ffe399 34%, #ecba57 54%, #d6962a 74%, #7a4a12 94%); }
 .beatific-card {
   background: var(--art-vellum) center / cover no-repeat, #fffcf0;
   border: 2.5px solid var(--ink);
