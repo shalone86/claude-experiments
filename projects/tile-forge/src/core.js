@@ -399,6 +399,92 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 // Your guardian angel is a glowing ball of light (no figure): flat rings of glow round a bright core.
 const ANGEL_SVG = `<svg class="angel" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19.5" fill="#ffd978" opacity=".16"/><circle cx="20" cy="20" r="15.5" fill="#ffd978" opacity=".3"/><circle cx="20" cy="20" r="12" fill="#ffe7a0" opacity=".6"/><circle cx="20" cy="20" r="8.6" fill="#fff6d8" stroke="#a8730f" stroke-width="1.3"/><circle cx="17.4" cy="17.2" r="2.5" fill="#fff"/></svg>`;
 
+// How the angel moves. Four ways to choose from in the Menu, saved on this device.
+const ANGEL_MODES = [
+  { id: 'drift', name: 'Drift', desc: 'Floats gently up and down and glows. Calm.' },
+  { id: 'fairy', name: 'Fairy', desc: 'Bobs along and sheds tiny sparkles now and then.' },
+  { id: 'wisp', name: 'Wisp', desc: 'Wanders in a lazy loop with a short sparkle trail.' },
+  { id: 'curious', name: 'Curious', desc: 'Hovers, darts off to peek, and zips back in a puff of sparkles.' }
+];
+const LS_ANGEL_KEY = 'tileforge_angel';
+let angelMode = (() => {
+  try { const v = localStorage.getItem(LS_ANGEL_KEY); return ANGEL_MODES.some(m => m.id === v) ? v : 'fairy'; }
+  catch (e) { return 'fairy'; }
+})();
+function setAngelMode(id) {
+  if (!ANGEL_MODES.some(m => m.id === id)) return;
+  angelMode = id;
+  try { localStorage.setItem(LS_ANGEL_KEY, id); } catch (e) {}
+  document.querySelectorAll('.orb:not(.fixed)').forEach(o => { o.dataset.orb = id; });
+}
+// The ball inside two small wrappers: .orb stays put (sparkles live here), .orb-body moves.
+// The delay keeps the float's rhythm steady when the page redraws (every loop divides 12 s).
+function angelHtml(mode, fixed) {
+  const t = ((Date.now() / 1000) % 12).toFixed(2);
+  return `<span class="orb${fixed ? ' fixed' : ''}" data-orb="${mode || angelMode}"><span class="orb-body" style="animation-delay:-${t}s">${ANGEL_SVG}</span></span>`;
+}
+// Sparkles: one light timer for every angel on the page. Each sparkle is one tiny element that
+// removes itself when its animation ends, and an angel never has more than six at once.
+const AngelLife = (() => {
+  let timer = 0;
+  const reduced = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } };
+  function spark(orb, x, y, kind, dx, dy) {
+    if (orb.querySelectorAll('.spark').length >= 6) return;
+    const size = orb.offsetWidth || 20;
+    const sz = Math.max(3, Math.min(11, size * 0.17)) * (0.75 + Math.random() * 0.5);
+    const el = document.createElement('i');
+    el.className = 'spark ' + kind;
+    el.style.cssText = `left:${(x - sz / 2).toFixed(1)}px;top:${(y - sz / 2).toFixed(1)}px;width:${sz.toFixed(1)}px;height:${sz.toFixed(1)}px;` +
+      `--dx:${(dx || 0).toFixed(1)}px;--dy:${(dy || 0).toFixed(1)}px;animation-duration:${(0.8 + Math.random() * 0.6).toFixed(2)}s`;
+    el.addEventListener('animationend', () => el.remove());
+    orb.appendChild(el);
+  }
+  function bodyCenter(orb) {
+    const body = orb.querySelector('.orb-body');
+    const o = orb.getBoundingClientRect(), b = (body || orb).getBoundingClientRect();
+    return { x: b.left + b.width / 2 - o.left, y: b.top + b.height / 2 - o.top, r: b.width / 2 };
+  }
+  function dart(orb) {
+    const svg = orb.querySelector('.angel');
+    if (!svg) return;
+    const play = !!orb.closest('.angel-line');
+    const dirs = play ? [[-95, -45], [-60, -75], [40, -80], [-110, 10]] : [[-110, -50], [100, -60], [-70, -90], [120, 20], [-120, 25]];
+    const [tx, ty] = dirs[Math.floor(Math.random() * dirs.length)];
+    const c = bodyCenter(orb);
+    for (let i = 0; i < 3; i++) {
+      const a = Math.random() * Math.PI * 2;
+      spark(orb, c.x, c.y, 'burst', Math.cos(a) * c.r * 1.1, Math.sin(a) * c.r * 1.1);
+    }
+    svg.style.translate = `${tx}% ${ty}%`;
+    setTimeout(() => { if (svg.isConnected) svg.style.translate = '0% 0%'; }, 650 + Math.random() * 500);
+  }
+  function tick() {
+    if (document.hidden || reduced()) return;
+    document.querySelectorAll('.orb').forEach(orb => {
+      if (!orb.offsetParent || orb.closest('.scene.lose')) return;
+      const mode = orb.dataset.orb;
+      if (mode === 'fairy') {
+        if (Math.random() < 0.34) {
+          const c = bodyCenter(orb), a = Math.random() * Math.PI * 2, d = c.r * (0.7 + Math.random() * 0.5);
+          spark(orb, c.x + Math.cos(a) * d, c.y + Math.sin(a) * d, 'rise', (Math.random() - 0.5) * c.r * 0.6, -c.r * (0.6 + Math.random() * 0.5));
+        }
+      } else if (mode === 'wisp') {
+        if (Math.random() < 0.55) {
+          const c = bodyCenter(orb);
+          spark(orb, c.x + (Math.random() - 0.5) * c.r * 0.5, c.y + (Math.random() - 0.5) * c.r * 0.5, 'trail', 0, c.r * 0.3);
+        }
+      } else if (mode === 'curious') {
+        if (orb.dataset.wait === undefined) { orb.dataset.wait = 6 + Math.floor(Math.random() * 10); return; }
+        const n = +orb.dataset.wait - 1;
+        if (n <= 0) { orb.dataset.wait = 16 + Math.floor(Math.random() * 16); dart(orb); }
+        else orb.dataset.wait = n;
+      }
+    });
+  }
+  function start() { if (!timer && typeof document !== 'undefined') timer = setInterval(tick, 230); }
+  return { start, tick, dart };
+})();
+
 const JUDGE_OK = [
   'A worthy word.',
   'Let it be written.',

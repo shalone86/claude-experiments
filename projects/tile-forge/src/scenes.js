@@ -57,7 +57,7 @@ function saveBest(b) { try { localStorage.setItem(TF_BEST_KEY, JSON.stringify(b)
 
 // ---- Full-screen scenes ----
 function sceneHtml(kind, d) {
-  const angel = `<div class="angel-big">${ANGEL_SVG}</div>`;
+  const angel = `<div class="angel-big">${angelHtml()}</div>`;
   const stats = d.stats ? `<div class="stats-line">${d.stats}</div>` : '';
   if (kind === 'home') {
     return `<div class="bg"></div>${angel}

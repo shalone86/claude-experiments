@@ -1725,6 +1725,8 @@ button:disabled {
   font-size: 14px;
   color: #cdece2;
 }
+/* Words and Swaps in the shop header are for phones, where the HUD is hidden */
+.shop-stats { display: none; }
 
 .shop-body {
   display: flex;
@@ -2348,26 +2350,43 @@ button:disabled {
     max-height: 100dvh;
     overflow: hidden;
   }
-  #app:not(.phase-shop) #ws-nav {
+  /* Phone top bar, play and shop alike: one clean row. The title and the stake on the left
+     (the stake drops its word "Stake"), and Menu, New Run and Rules as three square icon buttons. */
+  #app #ws-nav {
     padding: 4px 8px;
-    min-height: 34px;
-    gap: 5px;
+    min-height: 38px;
+    gap: 8px;
     flex-wrap: nowrap;
   }
-  #app:not(.phase-shop) .nav-brand {
-    font-size: 16px;
-    gap: 5px;
+  #app #ws-nav .nav-brand {
+    font-size: 17px;
+    gap: 7px;
     min-width: 0;
-  }
-  #app:not(.phase-shop) .stake-pill {
-    font-size: 9.5px;
-    padding: 3px 7px;
     white-space: nowrap;
   }
-  #app:not(.phase-shop) .nav-tools .btn.mini {
-    min-height: 25px;
-    padding: 0 7px;
+  #app #ws-nav .nav-title { flex: none; }
+  #app #ws-nav .stake-pill {
     font-size: 10px;
+    padding: 3px 8px;
+    white-space: nowrap;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #app #ws-nav .nl { display: none; }
+  #app #ws-nav .nav-tools {
+    flex: none;
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+  #app #ws-nav .nav-tools .btn.mini {
+    width: 32px;
+    min-height: 28px;
+    padding: 0;
+    justify-content: center;
+    font-size: 15px;
+    letter-spacing: 0;
+    white-space: nowrap;
   }
   #app:not(.phase-shop) #ws-main {
     flex: 1;
@@ -2592,33 +2611,6 @@ button:disabled {
     max-height: 100dvh;
     overflow: hidden;
   }
-  #app.phase-shop #ws-nav {
-    padding: 4px 8px;
-    min-height: 34px;
-    gap: 4px;
-    flex-wrap: nowrap;
-  }
-  #app.phase-shop .nav-brand {
-    font-size: 15px;
-    gap: 5px;
-    white-space: nowrap;
-    min-width: 0;
-  }
-  #app.phase-shop .stake-pill {
-    font-size: 9px;
-    padding: 2px 6px;
-    white-space: nowrap;
-  }
-  #app.phase-shop .nav-tools {
-    flex-wrap: nowrap;
-    gap: 4px;
-  }
-  #app.phase-shop .nav-tools .btn.mini {
-    min-height: 24px;
-    padding: 0 6px;
-    font-size: 9.5px;
-    white-space: nowrap;
-  }
   #app.phase-shop .hud {
     display: none;
   }
@@ -2636,19 +2628,44 @@ button:disabled {
     gap: 5px;
     padding-bottom: 0;
   }
+  /* The Forge's header on a phone: the next goal, the next round's Words and Swaps, and your gold.
+     The top bar already says Tile Forge, so the "The Forge" title steps aside here. */
   #app.phase-shop .shop-head {
-    padding: 5px 8px;
+    padding: 5px 6px 5px 10px;
     gap: 6px;
     flex-wrap: nowrap;
     flex: none;
   }
-  #app.phase-shop .shop-title {
-    font-size: 17px;
-  }
+  #app.phase-shop .shop-title { display: none; }
+  #app.phase-shop .shop-head-main { flex: 1 1 auto; min-width: 0; }
   #app.phase-shop .shop-sub {
-    font-size: 11px;
-    line-height: 1.15;
+    display: flex;
+    flex-direction: column;
+    line-height: 1;
+    gap: 2px;
   }
+  #app.phase-shop .shop-sub span {
+    font-family: 'Cinzel', serif;
+    font-weight: 800;
+    font-size: 9px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #a9d6c8;
+  }
+  #app.phase-shop .shop-sub b {
+    font-family: 'Cinzel', serif;
+    font-weight: 900;
+    font-size: 22px;
+    color: var(--gold-2);
+    text-shadow: 0 2px 0 var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #app.phase-shop .shop-stats { display: flex; gap: 5px; flex: none; }
+  #app.phase-shop .shop-stats .stat { min-width: 52px; padding: 3px 6px; }
+  #app.phase-shop .shop-stats .stat .lbl { font-size: 8.5px; }
+  #app.phase-shop .shop-stats .stat b { font-size: 17px; }
   #app.phase-shop .shop-head .btn.mini {
     min-height: 26px;
     padding: 0 7px;
@@ -2840,12 +2857,10 @@ button:disabled {
 .ftag.mini, .ftag.tiny { filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.45)); }
 .tile-chips { top: -9px; left: -4px; right: auto; gap: 0; display: flex; align-items: center; max-width: calc(100% + 6px); }
 .tile-chips .ftag + .ftag { margin-left: -1px; }
-/* a busy tile: smaller tags in two rows, each row no wider than the tile; the letter steps down */
-.tile-chips.stacked { flex-direction: column; align-items: flex-start; max-width: none; top: -8px; }
-.tile-chips.stacked .tchip-row { display: flex; align-items: center; }
-.tile-chips.stacked .tchip-row + .tchip-row { margin-top: -1px; }
-.tile.tags2 .ltr { margin-top: 10px; }
-#app.phase-shop .wb-tiles .tile.tags2 .ltr { margin-top: 8px; }
+/* one badge per tile: the strongest forge's tag, then a small plate of dots for the rest. It sits on
+   the tile's top edge, never wider than the tile, and the letter stays where it is. */
+.tile-chips.badge { max-width: none; }
+.tile-chips.badge .ftag.pips { margin-left: -2px; }
 .fbar {
   position: absolute;
   top: -5px;

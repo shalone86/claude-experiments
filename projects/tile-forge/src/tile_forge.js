@@ -152,16 +152,51 @@ const TileForge = (() => {
     const L = dir === 'left' || dir === 'both', R = dir === 'right' || dir === 'both';
     return (L ? p : 0) + w + (R ? p : 0) + j + 2 + (count > 1 ? h * 0.45 : 0);
   }
-  // How wide a row of tags may be: about one tile, so tags never spill onto the next tile.
-  function tagBudget() {
+  // How wide a tile's badge may be: about one tile, so it never spills onto the next tile.
+  // On phones the rack's tiles are clamp(40px, 11.6vw, 48px) wide and the shop's workbench fits 8 across.
+  function tagBudget(ctx) {
     const w = window.innerWidth || 1024;
-    return (w <= 600 ? Math.max(40, Math.min(48, w * 0.116)) : 54) + 4;
+    if (w > 600) return 58;
+    const tile = ctx === 'shop' ? (w - 60) / 8 : Math.max(40, Math.min(48, w * 0.116));
+    return Math.round((tile + 5) * 10) / 10;
   }
-  function moreChip(n, cls = 'mini') {
-    const h = TAG_H[cls], W = h * 1.5, H = h + 2;
-    return `<svg class="ftag ${cls}" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true">` +
-      `<rect x="1" y="1" width="${W - 2}" height="${h}" rx="${h * 0.4}" fill="#3b2415" stroke="#f4d886" stroke-width="1"/>` +
-      `<text x="${W / 2}" y="${H / 2}" text-anchor="middle" dominant-baseline="central" font-size="${h * 0.55}" fill="#f4d886">+${n}</text></svg>`;
+  // The rest of a busy tile's forges, as a small dark plate of dots, one per forge in its colour.
+  // Past three it shows how many more instead. Its height matches the tag it sits beside.
+  function pipsW(n, cls) {
+    const h = TAG_H[cls];
+    return h * 0.6 + 1 + (n > 3 ? h * 0.32 * String('+' + n).length : n * h * 0.42);
+  }
+  function pipsHtml(cols, cls) {
+    const h = TAG_H[cls], H = h + 2, n = cols.length, W = pipsW(n, cls);
+    const pad = h * 0.3 + 0.5, cy = H / 2, d = h * 0.42;
+    const inner = n > 3
+      ? `<text x="${(W / 2).toFixed(1)}" y="${cy}" text-anchor="middle" dominant-baseline="central" font-size="${(h * 0.55).toFixed(1)}" fill="#f4d886">+${n}</text>`
+      : cols.map((c, i) => `<circle cx="${(pad + d * (i + 0.5)).toFixed(1)}" cy="${cy}" r="${(h * 0.15).toFixed(1)}" fill="${c}" stroke="#f4d886" stroke-width=".8"/>`).join('');
+    return `<svg class="ftag pips ${cls}" width="${W.toFixed(1)}" height="${H}" viewBox="0 0 ${W.toFixed(1)} ${H}" aria-hidden="true">` +
+      `<rect x=".5" y="${(1 + h * 0.12).toFixed(1)}" width="${(W - 1).toFixed(1)}" height="${(h * 0.76).toFixed(1)}" rx="${(h * 0.38).toFixed(1)}" fill="#2b1b0f" stroke="#f4d886" stroke-opacity=".7" stroke-width=".8"/>` +
+      inner + `</svg>`;
+  }
+  // One badge per tile, never wider than the tile: its strongest forge as a tag, then a dot for each
+  // other forge. Tap and hold a tile for the full list. Sizes step down until the badge fits.
+  function badgeHtml(ranked, budget) {
+    const [[topId, topN], ...rest] = ranked;
+    const top = UPGRADES[topId];
+    const cols = [];
+    for (const [mId, cnt] of rest) for (let i = 0; i < cnt; i++) cols.push(FORGE_COL[UPGRADES[mId].color] || '#3b2415');
+    const JOIN = 2;
+    for (const cls of ['mini', 'tiny']) {
+      const w = glyphW(top, cls, topN) + (cols.length ? pipsW(cols.length, cls) - JOIN : 0);
+      if (w <= budget) {
+        return { w, html: `<div class="tile-chips badge">${glyphHtml(top, { count: topN, cls })}${cols.length ? pipsHtml(cols, cls) : ''}</div>` };
+      }
+    }
+    // a lone wide tag (like ^1.25 on a small shop tile) stays a tag, at the small size
+    if (!cols.length) return { w: glyphW(top, 'tiny', topN), html: `<div class="tile-chips badge">${glyphHtml(top, { count: topN, cls: 'tiny' })}</div>` };
+    // a very wide tag with others: just the dots, one per forge (or the count), so the tile still says it's busy
+    const all = [FORGE_COL[top.color] || '#3b2415'];
+    for (let i = 1; i < topN; i++) all.push(all[0]);
+    all.push(...cols);
+    return { w: pipsW(all.length, 'tiny'), html: `<div class="tile-chips badge">${pipsHtml(all, 'tiny')}</div>` };
   }
   // Which forges earn a visible tag first: whole-word effects, then multiply, replay, light, tricks, points.
   const FORGE_RANK = (id) => {
@@ -1035,49 +1070,15 @@ const TileForge = (() => {
       modCounts.set(m, (modCounts.get(m) || 0) + 1);
     }
     const entries = [...modCounts.entries()];
-    // Up to 3 forges show as tags. Past that: the shop shows a forge bar; the rack and board show the top two and +N.
-    const ranked = entries.slice().sort((a, b) => FORGE_RANK(a[0]) - FORGE_RANK(b[0]));
+    // One small badge per tile (its strongest forge, then a dot per other forge). The shop's letter
+    // grid shows a forge bar past three forges instead.
+    const ranked = entries.slice().sort((a, b) => FORGE_RANK(a[0]) - FORGE_RANK(b[0]) || b[1] - a[1]);
     let chipsHtml = '';
-    let tagRows = 0;
     if (ranked.length > 3 && opts.bar) {
       chipsHtml = forgeBarHtml(ranked);
     } else if (ranked.length) {
-      // One row of tags when they fit across the tile. When they don't, smaller tags stack in two
-      // rows, each no wider than the tile, and anything left over becomes a +N tag.
-      const budget = tagBudget();
-      const keep = ranked.length > 3 ? ranked.slice(0, 2) : ranked;
-      const rowW = keep.reduce((a, [mId, cnt]) => a + glyphW(UPGRADES[mId], 'mini', cnt), 0) +
-        (ranked.length > 3 ? TAG_H.mini * 1.5 : 0);
-      if (rowW <= budget) {
-        tagRows = 1;
-        chipsHtml = `<div class="tile-chips">${keep.map(([mId, cnt]) => glyphHtml(UPGRADES[mId], { count: cnt, cls: 'mini' })).join('')}` +
-          `${ranked.length > 3 ? moreChip(ranked.length - 2) : ''}</div>`;
-      } else {
-        const moreW = TAG_H.tiny * 1.5;
-        const rows = [[]];
-        let x = 0;
-        for (const r of ranked) {
-          const w = glyphW(UPGRADES[r[0]], 'tiny', r[1]);
-          if (x + w > budget && rows[rows.length - 1].length) {
-            if (rows.length === 2) break;
-            rows.push([]);
-            x = 0;
-          }
-          rows[rows.length - 1].push(r);
-          x += w;
-        }
-        let shown = rows.reduce((a, row) => a + row.length, 0);
-        const last = rows[rows.length - 1];
-        const lastW = () => last.reduce((a, [mId, cnt]) => a + glyphW(UPGRADES[mId], 'tiny', cnt), 0);
-        while (shown < ranked.length && last.length > 1 && lastW() + moreW > budget) { last.pop(); shown--; }
-        const extra = ranked.length - shown;
-        tagRows = rows.length;
-        chipsHtml = `<div class="tile-chips stacked">` + rows.map((row, ri) =>
-          `<div class="tchip-row">${row.map(([mId, cnt]) => glyphHtml(UPGRADES[mId], { count: cnt, cls: 'tiny' })).join('')}` +
-          `${ri === rows.length - 1 && extra > 0 ? moreChip(extra, 'tiny') : ''}</div>`).join('') + `</div>`;
-      }
+      chipsHtml = badgeHtml(ranked, tagBudget(opts.bar ? 'shop' : 'rack')).html;
     }
-    if (tagRows > 1) cls.push('tags2');
 
     const ltrHtml = opts.fill
       ? `<span class="ltr res">${esc(opts.fill)}</span>`
@@ -1511,7 +1512,20 @@ const TileForge = (() => {
       `;
     }).join('');
 
+    const angelOpts = ANGEL_MODES.map(m => `
+        <button class="angel-opt ${m.id === angelMode ? 'active' : ''}" data-act="setAngel" data-arg="${m.id}">
+          <span class="angel-opt-stage">${angelHtml(m.id, true)}</span>
+          <b>${esc(m.name)}</b><small>${esc(m.desc)}</small>
+        </button>`).join('');
     const bodyHtml = `
+      <div class="menu-section angel-pick">
+        <div class="menu-sec-head">
+          <b>Guardian Angel</b>
+          <span class="menu-hint">Pick how it moves. All four are moving here side by side.</span>
+        </div>
+        <div class="angel-opts">${angelOpts}</div>
+      </div>
+
       <div class="menu-section">
         <div class="scale-head">
           <div>
@@ -1566,13 +1580,13 @@ const TileForge = (() => {
     const st = getStake();
     nav.innerHTML = `
       <div class="nav-brand">
-        <span>Tile Forge</span>
-        <button class="stake-pill stake-${st.id}" data-act="menu" title="Open Menu: Goal Scale &amp; Stakes">${st.icon} ${esc(st.short)} Stake${S.goalScalePct !== 100 ? ` · ${S.goalScalePct}%` : ''}</button>
+        <span class="nav-title">Tile Forge</span>
+        <button class="stake-pill stake-${st.id}" data-act="menu" title="Open Menu: Goal Scale &amp; Stakes" aria-label="${esc(st.short)} Stake: open the Menu">${st.icon} ${esc(st.short)}<span class="nl"> Stake</span>${S.goalScalePct !== 100 ? ` · ${S.goalScalePct}%` : ''}</button>
       </div>
       <div class="nav-tools">
-        <button class="btn mini gold" data-act="menu">⚙ Menu</button>
-        <button class="btn mini wood" data-act="restart">↺ New Run</button>
-        <button class="btn mini wood" data-act="rules">? Rules</button>
+        <button class="btn mini gold" data-act="menu" title="Menu" aria-label="Menu"><span class="ni" aria-hidden="true">⚙</span><span class="nl"> Menu</span></button>
+        <button class="btn mini wood" data-act="restart" title="New Run" aria-label="New Run"><span class="ni" aria-hidden="true">↺</span><span class="nl"> New Run</span></button>
+        <button class="btn mini wood" data-act="rules" title="Rules" aria-label="Rules"><span class="ni" aria-hidden="true">?</span><span class="nl"> Rules</span></button>
       </div>
     `;
   }
@@ -1693,7 +1707,7 @@ const TileForge = (() => {
       ${infoHtml}
       <div class="book-cover">
         <div class="book-page">
-          <div class="angel-line">${ANGEL_SVG}<div class="judgement ${judge.cls}">${angelTextHtml}</div></div>
+          <div class="angel-line">${angelHtml()}<div class="judgement ${judge.cls}">${angelTextHtml}</div></div>
           <div class="verse-wrap">
             <button class="shift ${nudgeLeft ? 'nudge' : ''}" data-act="shift" data-arg="-1" ${!filledIdx.length || filledIdx[0] === 0 ? 'disabled' : ''} title="Shift word left">‹</button>
             <div class="verse-line-wrap">
@@ -1884,9 +1898,13 @@ const TileForge = (() => {
       ${renderHud(spec)}
       <div class="shop-wrap">
         <div class="shop-head">
-          <div>
+          <div class="shop-head-main">
             <div class="shop-title">The Forge</div>
-            <div class="shop-sub">Next goal <b>${fmtC(nextSpec.goal)}</b></div>
+            <div class="shop-sub"><span>Next goal</span> <b>${fmtC(nextSpec.goal)}</b></div>
+          </div>
+          <div class="shop-stats">
+            <div class="stat words"><span class="lbl">WORDS</span><b>${getStake().wordsPerStage}</b></div>
+            <div class="stat swaps"><span class="lbl">SWAPS</span><b>${getStake().swapsPerStage}</b></div>
           </div>
           <div class="coin-badge" data-tip-title="Gold" data-tip-text="Spend it on forges. Unspent gold carries over to the next shop."><i class="coin" aria-hidden="true">$</i><b>${S.gold}</b></div>
         </div>
@@ -1927,6 +1945,7 @@ const TileForge = (() => {
   }
 
   function render() {
+    AngelLife.start();
     renderNav();
     const app = document.getElementById('app');
     const main = document.getElementById('ws-main');
@@ -2055,6 +2074,11 @@ const TileForge = (() => {
       case 'closeModal': closeModal(); pendingComboCtx = null; return;
       case 'rules': openRules(); return;
       case 'menu': openMenu(); return;
+      case 'setAngel':
+        setAngelMode(arg);
+        document.querySelectorAll('.angel-opt').forEach(b => b.classList.toggle('active', b.dataset.arg === arg));
+        SFX.pick();
+        return;
       case 'setGoalScale': setGoalScale(+arg); SFX.pick(); return;
       case 'pickStake': openMenu(arg); SFX.pick(); return;
       case 'applyStake': {
@@ -2559,6 +2583,7 @@ const TileForge = (() => {
     computeTriggers,
     computeScore,
     startStage,
+    render,
     _getState: () => S
   };
 })();

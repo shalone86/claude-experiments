@@ -70,12 +70,19 @@ it glow warm (×2). Empty slots show their multiplier, and every flame flickers 
 - **Score smoke:** smoke rises behind a word that passes the goal, higher at 10×, 100× and 1000× over.
   Smoke over the whole screen, the glitch and the white-out come only with an infinite score.
 - **Your guardian angel** is a glowing ball of light (no figure), on the page and on every screen.
-- **Busy tiles:** forge tags sit in one row when they fit across the tile. When they don't (often on a
-  phone), smaller tags stack in two rows, each no wider than the tile, and the rest show as `+N`.
+  It moves one of four ways, picked in **Menu → Guardian Angel** (saved on the device): **Drift**
+  (a slow float), **Fairy** (bobs and sheds tiny sparkles), **Wisp** (a lazy figure-eight with a
+  sparkle trail) or **Curious** (hovers, then darts off to peek and zips back). No motion and no
+  sparkles when the device asks for reduced motion.
+- **Busy tiles:** each tile shows one small badge, never wider than the tile: its strongest forge as a
+  tag, then a dot for each other forge in that forge's colour (past three, `+N`). The letter never moves.
+  Press and hold the tile for the full list. The shop's letter grid still shows a forge bar past three.
 - **Bought cards** leave a dark, empty slot in the shop.
 - **Phones:** the ledger page shrinks its candles and writing line when the screen is short (or an
   Audit banner takes room), so the score line never spills under the rack. In play the Audit banner
-  shows just the rule, since the plate above already names the Audit.
+  shows just the rule, since the plate above already names the Audit. The top bar is one row: the
+  title, the stake, and Menu (⚙), New Run (↺) and Rules (?) as square icon buttons. The shop's header
+  shows the next goal, the next round's Words and Swaps, and your gold (the top bar already says Tile Forge).
 - **Seeing a tile's forges:** hover it (desktop) or press and hold it (phone). Tooltips colour the key
   words: red multiply, blue points, orange light, purple replay, gold money, green wild and copy.
 - **Strongest** in the shop's letter grid sorts your letters by a rough strength score (points through
