@@ -1,0 +1,8 @@
+{
+  // Serves Tile Forge at shalonely.com/tileforge (Cloudflare Workers static assets, no code).
+  // deploy.sh fills public/tileforge/ with the built standalone game, then runs wrangler deploy.
+  "name": "tile-forge",
+  "compatibility_date": "2026-11-01",
+  "assets": { "directory": "./public", "html_handling": "auto-trailing-slash", "not_found_handling": "none" },
+  "routes": [ { "pattern": "shalonely.com/tileforge*", "zone_name": "shalonely.com" } ]
+}

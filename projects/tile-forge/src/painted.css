@@ -1,0 +1,639 @@
+/* =====================================================================
+   PAINTED LOOK (round 4), laid over styles.css by build.py
+   - The desk, wall and props, and the page paper, are three painted pictures rendered in Blender
+     (src/art/desk-wide.webp, desk-tall.webp, vellum.webp; build.py puts them inside the page).
+     Everything else is drawn here in CSS, so it stays sharp and costs almost nothing to draw.
+   - Flat colour: gradients become two or three hard bands, like cel shading. The full-screen
+     skies and vignettes are the exception: they blend smoothly, since wide hard steps there look rough.
+   - Bold sepia ink outlines, and two kinds of 2D shadow:
+       the ink lip:     a hard, dark edge right under a thing (0 3px 0 ink)
+       the cast shadow: two flat, see-through bands falling away from the light (the --cast-* lists)
+     The light comes from the top left (the big candle in the desk picture), so most shadows fall down
+     and to the right. Tiles on the writing line lean away from the line's own candle instead (--d,
+     set per slot in renderPlay: how many slots the tile is from the flame).
+   - Nothing here animates that didn't before; no blur filters were added.
+   To go back to the old look, drop painted.css from build.py.
+   ===================================================================== */
+:root {
+  /* the three painted pictures (build.py swaps each url for the picture itself, once) */
+  --art-desk-wide: url(art/desk-wide.webp);
+  --art-desk-tall: url(art/desk-tall.webp);
+  --art-vellum: url(art/vellum.webp);
+  --ink: #2a1609;
+  --ink-2: #3b2010;
+  /* cast shadows: on the dark desk, on the light page */
+  --cast-desk: 5px 7px 0 rgba(8, 3, 0, 0.38), 10px 14px 0 rgba(8, 3, 0, 0.16);
+  --cast-desk-sm: 3px 4px 0 rgba(8, 3, 0, 0.38), 6px 8px 0 rgba(8, 3, 0, 0.15);
+  --cast-page: 4px 6px 0 rgba(92, 50, 16, 0.26), 8px 11px 0 rgba(92, 50, 16, 0.11);
+  --cast-page-sm: 2px 4px 0 rgba(92, 50, 16, 0.26), 5px 7px 0 rgba(92, 50, 16, 0.11);
+  --cast-book: 9px 12px 0 rgba(8, 3, 0, 0.36), 18px 24px 0 rgba(8, 3, 0, 0.15);
+  --cast-float: 8px 12px 0 rgba(8, 3, 0, 0.4), 18px 26px 0 rgba(8, 3, 0, 0.16);
+}
+@media (max-width: 600px) {
+  :root {
+    --cast-desk: 3px 5px 0 rgba(8, 3, 0, 0.38), 6px 9px 0 rgba(8, 3, 0, 0.15);
+    --cast-desk-sm: 2px 3px 0 rgba(8, 3, 0, 0.38), 4px 6px 0 rgba(8, 3, 0, 0.15);
+    --cast-page: 3px 4px 0 rgba(92, 50, 16, 0.26), 5px 8px 0 rgba(92, 50, 16, 0.11);
+    --cast-book: 5px 7px 0 rgba(8, 3, 0, 0.36), 10px 14px 0 rgba(8, 3, 0, 0.15);
+  }
+}
+
+/* ---------------------------------------------------------------------
+   The painted desk behind everything (wide on desktop, tall on phones)
+   --------------------------------------------------------------------- */
+html, body { background: #1a0f07; }
+#app {
+  background: var(--art-desk-wide) center top / cover no-repeat, #1a0f07;
+}
+#app.phase-shop {
+  background:
+    linear-gradient(rgba(10, 30, 26, 0.6), rgba(6, 20, 17, 0.72)),
+    var(--art-desk-wide) center top / cover no-repeat, #0b1a17;
+}
+#app.boss-stage {
+  background:
+    linear-gradient(rgba(60, 10, 6, 0.45), rgba(30, 5, 3, 0.6)),
+    var(--art-desk-wide) center top / cover no-repeat, #200906;
+}
+.scene.home .bg {
+  background:
+    radial-gradient(ellipse 70% 45% at 50% 32%, rgba(26, 14, 6, 0.3) 30%, rgba(16, 9, 4, 0.62) 68%, rgba(10, 6, 3, 0.82) 92%),
+    var(--art-desk-wide) center top / cover no-repeat, #170d06;
+}
+@media (max-aspect-ratio: 4/5) {
+  #app { background-image: var(--art-desk-tall); }
+  #app.phase-shop { background-image: linear-gradient(rgba(10, 30, 26, 0.6), rgba(6, 20, 17, 0.72)), var(--art-desk-tall); }
+  #app.boss-stage { background-image: linear-gradient(rgba(60, 10, 6, 0.45), rgba(30, 5, 3, 0.6)), var(--art-desk-tall); }
+  .scene.home .bg {
+    background-image:
+      radial-gradient(ellipse 70% 45% at 50% 32%, rgba(26, 14, 6, 0.3) 30%, rgba(16, 9, 4, 0.62) 68%, rgba(10, 6, 3, 0.82) 92%),
+      var(--art-desk-tall);
+  }
+}
+
+/* ---------------------------------------------------------------------
+   Top bar: a dark oak board with an inked edge (no blur behind it)
+   --------------------------------------------------------------------- */
+#ws-nav {
+  background: linear-gradient(180deg, rgba(42, 25, 13, 0.94) 0 55%, rgba(30, 18, 9, 0.94) 55%);
+  backdrop-filter: none;
+  border-bottom: 2px solid var(--ink);
+  box-shadow: 0 4px 0 rgba(8, 3, 0, 0.3);
+}
+.nav-brand { text-shadow: 0 2px 0 var(--ink); }
+.stake-pill {
+  border: 1.5px solid var(--ink);
+  box-shadow: 0 2px 0 var(--ink);
+  background: linear-gradient(180deg, #4a301b 0 50%, #3a2414 50%);
+}
+.stake-pill.stake-red { background: linear-gradient(180deg, #8e2c1a 0 50%, #6e1f12 50%); border-color: var(--ink); }
+.stake-pill.stake-green { background: linear-gradient(180deg, #2c7560 0 50%, #1f5947 50%); border-color: var(--ink); }
+.stake-pill.stake-blue { background: linear-gradient(180deg, #2a5cb4 0 50%, #1d4590 50%); border-color: var(--ink); }
+.stake-pill.stake-purple { background: linear-gradient(180deg, #7b3ba8 0 50%, #5d2a83 50%); border-color: var(--ink); }
+.stake-pill.stake-gold { background: linear-gradient(180deg, #7a5512 0 50%, #5d400c 50%); border-color: var(--ink); }
+
+/* ---------------------------------------------------------------------
+   Buttons: two flat bands, an inked edge, the ink lip and a cast shadow
+   --------------------------------------------------------------------- */
+.btn.lapis, .btn.cinnabar, .btn.gold, .btn.verd, .btn.violet, .btn.wood {
+  border: 2px solid var(--ink);
+  box-shadow: 0 3px 0 var(--ink), var(--cast-desk-sm);
+}
+.btn.mini.lapis, .btn.mini.cinnabar, .btn.mini.gold, .btn.mini.verd, .btn.mini.violet, .btn.mini.wood {
+  border-width: 1.5px;
+  box-shadow: 0 2px 0 var(--ink), 2px 3px 0 rgba(8, 3, 0, 0.32);
+}
+.btn.lapis { background: linear-gradient(180deg, #3d72d4 0 50%, #1f4fa3 50%); }
+.btn.cinnabar { background: linear-gradient(180deg, #d24e33 0 50%, #a72a17 50%); }
+.btn.gold { background: linear-gradient(180deg, #ebbd5a 0 50%, #c18c2b 50%); }
+.btn.verd { background: linear-gradient(180deg, #459d84 0 50%, #276b58 50%); }
+.btn.violet { background: linear-gradient(180deg, #9b55ca 0 50%, #6b3094 50%); }
+.btn.wood { background: linear-gradient(180deg, #5e3d22 0 50%, #3f2716 50%); }
+.btn:not(.gold) { text-shadow: 0 1.5px 0 rgba(42, 22, 9, 0.8); }
+/* pressed: the button sinks onto its lip and its shadow shortens */
+.btn:active:not(:disabled) { box-shadow: 0 1px 0 var(--ink), 1px 2px 0 rgba(8, 3, 0, 0.3); }
+.btn:disabled { box-shadow: 0 2px 0 var(--ink); }
+
+/* ---------------------------------------------------------------------
+   HUD: vellum plate, dark score box, stat chips
+   --------------------------------------------------------------------- */
+.plate {
+  background: var(--art-vellum) center / cover no-repeat, #efdfb9;
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink), var(--cast-desk-sm);
+}
+#app.boss-stage .plate {
+  background: linear-gradient(180deg, #6a1a0e 0 55%, #4c110a 55%);
+  border-color: var(--ink);
+  box-shadow: 3px 3px 0 var(--ink), var(--cast-desk-sm);
+}
+.pips i { border-color: var(--ink); }
+.pips i.cur { box-shadow: none; }
+.scorebox {
+  background: linear-gradient(180deg, #2e1d10 0 50%, #21140b 50%);
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink), var(--cast-desk-sm);
+}
+.scorebox .score { text-shadow: 0 2px 0 var(--ink); }
+.bar { background: #0c0703; border: 1.5px solid var(--ink); }
+.bar i { background: linear-gradient(180deg, #f4d886 0 45%, #c18c2b 45%); }
+.stat {
+  background: linear-gradient(180deg, #24160c 0 50%, #1a100a 50%);
+  border: 1.5px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink), 3px 5px 0 rgba(8, 3, 0, 0.25);
+}
+.stat b { text-shadow: 0 1.5px 0 var(--ink); }
+.stat.rules-btn { background: linear-gradient(180deg, #4a2e1a 0 50%, #33200f 50%); }
+.stat.gold {
+  background: linear-gradient(180deg, #3d2a0e 0 50%, #2b1d09 50%) !important;
+  border-color: var(--ink) !important;
+  box-shadow: 2px 2px 0 var(--ink), 3px 5px 0 rgba(8, 3, 0, 0.25);
+}
+
+.audit-banner {
+  background: linear-gradient(180deg, #7a2012 0 50%, #561109 50%);
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink), var(--cast-desk-sm);
+}
+.audit-banner.shop-audit-preview {
+  background: linear-gradient(180deg, #1f6452 0 50%, #154536 50%);
+  border-color: var(--ink);
+  box-shadow: 3px 3px 0 var(--ink), var(--cast-desk-sm);
+}
+.info-strip {
+  background: var(--art-vellum) center / cover no-repeat, #efdfb9;
+  border: 2px solid var(--ink);
+  border-left: 6px solid var(--gold-deep);
+  box-shadow: 3px 3px 0 var(--ink), var(--cast-desk-sm);
+}
+.info-strip.demo { background: linear-gradient(180deg, #f3e4f9 0 50%, #e3cdf0 50%); }
+
+/* ---------------------------------------------------------------------
+   The ledger: red leather cover, painted vellum page, a big flat shadow on the desk
+   --------------------------------------------------------------------- */
+.book-cover {
+  background: linear-gradient(160deg, #7a2818 0 42%, #5d1d10 42%);
+  border: 2.5px solid var(--ink);
+  box-shadow: 4px 5px 0 var(--ink), var(--cast-book), inset 0 0 0 2px rgba(211, 162, 59, 0.6);
+}
+#app.boss-stage .book-cover {
+  background: linear-gradient(160deg, #3a1916 0 42%, #1e0b09 42%);
+  box-shadow: 4px 5px 0 var(--ink), var(--cast-book), inset 0 0 0 2px rgba(181, 48, 28, 0.75);
+}
+.book-page {
+  background:
+    repeating-linear-gradient(180deg, transparent 0 27px, rgba(150, 60, 40, 0.12) 27px 28px),
+    var(--art-vellum) center / 100% 100% no-repeat, #efdfb9;
+  box-shadow: inset 0 0 0 1.5px var(--ink), inset 0 5px 0 rgba(92, 50, 16, 0.12);
+}
+.shift {
+  background: linear-gradient(180deg, rgba(120, 80, 30, 0.2) 0 50%, rgba(120, 80, 30, 0.3) 50%);
+  border: 1.5px solid rgba(42, 22, 9, 0.55);
+  box-shadow: 2px 3px 0 rgba(92, 50, 16, 0.22);
+}
+.shift.nudge:not(:disabled) { outline-color: var(--ink); box-shadow: 2px 3px 0 rgba(92, 50, 16, 0.22), 0 0 0 3px rgba(211, 162, 59, 0.55); }
+
+/* the writing line: empty slots are inked dashes, lit slots are flat pools of light */
+.vcell { border-color: rgba(42, 22, 9, 0.45); background: rgba(120, 80, 30, 0.08); }
+.vcell.light-shadow { border-color: rgba(42, 22, 9, 0.4); background: rgba(42, 22, 9, 0.16); }
+.vcell.light-warm { border-color: rgba(150, 100, 20, 0.75); background: rgba(255, 194, 90, 0.18); }
+.vcell.light-bright {
+  border-color: var(--ink);
+  background: radial-gradient(circle at 50% 40%, rgba(255, 228, 140, 0.62) 0 46%, rgba(230, 180, 80, 0.32) 46%);
+  box-shadow: 0 0 0 2px rgba(255, 200, 90, 0.5), inset 0 0 0 2px rgba(255, 240, 190, 0.55);
+}
+.vcell.light-blazing {
+  border-color: var(--ink);
+  background: radial-gradient(circle at 50% 40%, rgba(255, 236, 150, 0.68) 0 44%, rgba(188, 130, 235, 0.36) 44%);
+  box-shadow: 0 0 0 2px rgba(188, 130, 235, 0.6), 0 0 0 4px rgba(255, 210, 100, 0.35), inset 0 0 0 2px rgba(255, 244, 190, 0.6);
+}
+.vcell.light-bright .tile .face { filter: brightness(1.1) saturate(1.12); }
+.vcell.light-blazing .tile .face { filter: brightness(1.14) saturate(1.16); }
+.vcell.light-warm::before { background: radial-gradient(ellipse at 50% 20%, rgba(255, 190, 90, 0.42) 0 42%, rgba(255, 170, 60, 0.18) 42% 64%, transparent 64%); }
+.vcell.light-bright::before { background: radial-gradient(ellipse at 50% 18%, rgba(255, 214, 120, 0.8) 0 36%, rgba(255, 175, 70, 0.36) 36% 60%, transparent 60%); }
+.vcell.light-blazing::before { background: radial-gradient(ellipse at 50% 18%, rgba(255, 236, 150, 0.85) 0 36%, rgba(200, 120, 255, 0.38) 36% 62%, transparent 62%); }
+.candle-halo { background: radial-gradient(ellipse at 50% 42%, rgba(255, 198, 92, 0.32) 0 34%, rgba(255, 170, 60, 0.14) 34% 62%, transparent 62%); }
+.candle-halo.all-lit { background: radial-gradient(ellipse at 50% 45%, rgba(255, 224, 130, 0.4) 0 48%, rgba(255, 185, 70, 0.18) 48% 82%, transparent 82%); }
+
+/* ---------------------------------------------------------------------
+   Candles: flat wax with an ink outline, a banded flame with one soft glow
+   --------------------------------------------------------------------- */
+.cflame .wax {
+  background: linear-gradient(90deg, #f3e3bd 0 58%, #cfae79 58%);
+  border: 1.5px solid var(--ink);
+  box-shadow: 2px 1px 0 rgba(92, 50, 16, 0.3);
+}
+.cflame .wax::before { background: var(--ink); }
+.cflame .wax::after { /* the candle's own flat shadow on the page, thrown by the big desk candle (top left) */
+  content: "";
+  position: absolute;
+  left: 3px;
+  bottom: -1px;
+  width: 100%;
+  height: 100%;
+  border-radius: 2px;
+  background: rgba(92, 50, 16, 0.26);
+  transform-origin: 50% 100%;
+  transform: skewX(-52deg) scaleY(0.42);
+  z-index: -1;
+}
+.cflame.orb .wax::after { display: none; }
+.cflame .fl {
+  background: radial-gradient(ellipse at 50% 80%, #fffbe0 0 24%, #ffd45c 24% 48%, #ff8d22 48% 72%, rgba(255, 90, 0, 0) 73%);
+  filter: drop-shadow(0 0 7px rgba(255, 166, 50, 0.75));
+}
+.cflame .fl-core { background: radial-gradient(ellipse at 50% 70%, #ffffff 0 45%, rgba(255, 241, 184, 0) 46%); }
+.lv-blazing .cflame .fl {
+  background: radial-gradient(ellipse at 50% 80%, #ffffff 0 20%, #ffe680 20% 44%, #e07cff 44% 72%, rgba(160, 60, 255, 0) 73%);
+  filter: drop-shadow(0 0 8px rgba(190, 100, 255, 0.8));
+}
+.cflame .emb { background: radial-gradient(circle, #ffe8a6 0 34%, #ff9c2c 34% 58%, rgba(255, 140, 40, 0) 60%); }
+.lv-bright .lmult, .lv-blazing .lmult { text-shadow: 0 1.5px 0 rgba(255, 236, 180, 0.9); }
+
+/* ---------------------------------------------------------------------
+   Word score box (on the page) and the rack (on the desk)
+   --------------------------------------------------------------------- */
+.word-score-box {
+  background: linear-gradient(180deg, #3d72d4 0 50%, #1f4fa3 50%);
+  border: 2px solid var(--ink);
+  box-shadow: 0 3px 0 var(--ink), var(--cast-page);
+}
+.word-score-box:hover:not(:disabled) { box-shadow: 0 4px 0 var(--ink), var(--cast-page); }
+.word-score-box.void-btn { background: linear-gradient(180deg, #684628 0 50%, #4a2f19 50%); border-color: var(--ink); box-shadow: 0 3px 0 var(--ink), var(--cast-page); }
+.word-score-box.ablaze {
+  background: linear-gradient(180deg, #ebbd5a 0 50%, #c18c2b 50%);
+  border-color: var(--ink);
+  box-shadow: 0 3px 0 var(--ink), var(--cast-page), 0 0 0 4px rgba(255, 190, 70, 0.55);
+}
+.word-score-box b { text-shadow: 0 2px 0 rgba(42, 22, 9, 0.75); }
+.word-score-box.ablaze b { text-shadow: 0 1.5px 0 rgba(255, 244, 210, 0.7); }
+.rack-box {
+  background: linear-gradient(180deg, #5e3d22 0 52%, #46301b 52% 86%, #362213 86%);
+  border: 2px solid var(--ink);
+  box-shadow: 0 4px 0 var(--ink), var(--cast-desk);
+}
+.rack-box::after { background: #6e4a2a; box-shadow: 0 0 0 1.5px var(--ink); }
+.rack-box.drag-over { box-shadow: inset 0 0 0 2px var(--gold-2), 0 4px 0 var(--ink), var(--cast-desk); }
+
+/* ---------------------------------------------------------------------
+   Tiles: banded colour, ink outline, the ink lip, and a cast shadow that
+   leans. The shadow is the tile's ::before, a flat see-through copy of the
+   tile slid down and skewed; its own box-shadow is the paler outer band.
+   --------------------------------------------------------------------- */
+.tile .face {
+  background: linear-gradient(160deg, #fdf5df 0 44%, #ecdab2 44% 80%, #d8be8c 80%);
+  border-width: 2px;
+  border-color: var(--ink);
+  box-shadow: 0 3px 0 var(--ink);
+}
+.tile::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  pointer-events: none;
+  background: var(--tcast, rgba(8, 3, 0, 0.4));
+  box-shadow: var(--tsx2, 3px) var(--tsy2, 4px) 0 var(--tcast-2, rgba(8, 3, 0, 0.16));
+  transform-origin: 50% 0;
+  transform: translate(var(--tsx, 3px), var(--tsy, 5px)) skewX(var(--tsk, 9deg));
+}
+/* on the page: warm brown shadows that lean away from the line's candle */
+.verse-line .tile {
+  --tcast: rgba(92, 50, 16, 0.3);
+  --tcast-2: rgba(92, 50, 16, 0.12);
+  --tsx: calc(var(--d, 0) * 1.5px);
+  --tsy: 5px;
+  --tsk: clamp(-24deg, calc(var(--d, 0) * 7deg), 24deg);
+  --tsx2: calc(var(--d, 0) * 1px);
+  --tsy2: 4px;
+}
+/* in the bag sheet (paper) */
+.sheet .tile { --tcast: rgba(92, 50, 16, 0.28); --tcast-2: rgba(92, 50, 16, 0.11); }
+/* lifted to be swapped: the tile rises, its shadow stays on the rack and grows */
+.tile.marked::before { transform: translate(calc(var(--tsx, 3px) + 2px), calc(var(--tsy, 5px) + 8px)) skewX(var(--tsk, 9deg)); }
+.tile.dragging::before { display: none; }
+.tile[class*="mat-"] .face, .tile.lead .face { border-color: var(--ink); }
+.tile.mat-gilded .face { background: linear-gradient(160deg, #fff1b4 0 34%, #ecbf55 34% 74%, #c58d21 74%); }
+.tile.mat-ruby .face { background: linear-gradient(160deg, #f7b6a6 0 30%, #e3664b 30% 70%, #b5301c 70%); }
+.tile.mat-sapphire .face { background: linear-gradient(160deg, #c9dcff 0 30%, #5b8de0 30% 70%, #1f4fa3 70%); }
+.tile.mat-catalyst .face { background: linear-gradient(160deg, #c6f3e1 0 30%, #52b89b 30% 70%, #246b56 70%); }
+.tile.mat-prism .face {
+  background: linear-gradient(135deg, #f6d2ff 0 26%, #c17be8 26% 52%, #6f98e8 52% 78%, #f4d886 78%);
+  box-shadow: 0 3px 0 var(--ink), 0 0 0 3px rgba(188, 130, 235, 0.35);
+}
+.tile.mat-lantern .face {
+  background: linear-gradient(160deg, #fff8dc 0 34%, #ffd970 34% 72%, #d9941e 72%);
+  box-shadow: 0 3px 0 var(--ink), 0 0 0 3px rgba(255, 210, 90, 0.4);
+}
+.tile.lead .face {
+  background: linear-gradient(160deg, #858b95 0 42%, #5a6069 42% 78%, #3e434b 78%);
+  box-shadow: 0 3px 0 var(--ink);
+}
+.tile.mat-ruby .ltr, .tile.mat-ruby .val,
+.tile.mat-sapphire .ltr, .tile.mat-sapphire .val,
+.tile.mat-catalyst .ltr, .tile.mat-catalyst .val { text-shadow: 0 1.5px 0 rgba(42, 22, 9, 0.75); }
+.tile.marked .face { outline-color: var(--cinnabar); }
+.tile.marked::after { border: 1.5px solid var(--ink); box-shadow: 0 2px 0 var(--ink); }
+.tile.fuse-picked .face { box-shadow: 0 3px 0 var(--ink), 0 0 0 4px rgba(244, 216, 134, 0.85) !important; }
+.wb-tiles .tile.pickable .face { box-shadow: 0 3px 0 var(--ink), 0 0 0 3px rgba(244, 216, 134, 0.55); }
+@keyframes pickPulse {
+  0%, 100% { box-shadow: 0 3px 0 var(--ink), 0 0 0 0 rgba(244, 216, 134, 0); }
+  50%      { box-shadow: 0 3px 0 var(--ink), 0 0 0 3px rgba(244, 216, 134, 0.85); }
+}
+/* forge tags: inked outline and a hard little shadow */
+.ftag polygon:first-of-type { stroke: var(--ink); stroke-opacity: 0.9; }
+.ftag.mini { filter: drop-shadow(1px 1.5px 0 rgba(42, 22, 9, 0.6)); }
+.tchip { border: 1px solid var(--ink); box-shadow: 1px 1.5px 0 var(--ink); }
+.tile-seal, .tile-qty { border-color: var(--ink); box-shadow: 1px 2px 0 var(--ink); }
+.tile-qty { background: #1f130b; border: 1.5px solid var(--ink); color: var(--gold-2); }
+.tile-wild-tag { border: 1.5px solid var(--ink); box-shadow: 1px 2px 0 var(--ink); }
+.fbar i { box-shadow: 0 0 0 1px var(--ink); }
+.fbar b { border-color: var(--ink); box-shadow: 1px 2px 0 var(--ink); }
+
+/* ---------------------------------------------------------------------
+   The Forge (shop): vellum cards on the desk, a dark workbench board
+   --------------------------------------------------------------------- */
+.shop-head {
+  background: linear-gradient(180deg, rgba(18, 38, 33, 0.92) 0 55%, rgba(12, 28, 24, 0.92) 55%);
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink), var(--cast-desk-sm);
+}
+.shop-title { text-shadow: 0 2px 0 var(--ink); }
+.shop-guide {
+  background: linear-gradient(180deg, rgba(244, 216, 134, 0.2) 0 50%, rgba(244, 216, 134, 0.13) 50%);
+  border: 2px solid var(--ink);
+  box-shadow: 2px 3px 0 var(--ink);
+}
+.scard,
+#app.phase-shop .scard {
+  background: var(--art-vellum) center / cover no-repeat, #efdfb9;
+  border-color: var(--ink);
+  box-shadow: 0 4px 0 var(--ink), var(--cast-desk-sm);
+}
+.scard.rar-rare, #app.phase-shop .scard.rar-rare { box-shadow: 0 4px 0 var(--ink), var(--cast-desk-sm), 0 0 0 2px rgba(234, 111, 82, 0.45); }
+.scard.rar-legendary, #app.phase-shop .scard.rar-legendary {
+  background: linear-gradient(180deg, #fff6d8 0 50%, #f2d98f 50%);
+  border-color: var(--ink);
+  box-shadow: 0 4px 0 var(--ink), var(--cast-desk-sm), 0 0 0 3px rgba(244, 216, 134, 0.6);
+}
+.scard.selected, #app.phase-shop .scard.selected { background: linear-gradient(180deg, #fff8de 0 50%, #f0da9a 50%); }
+@keyframes cardGlow {
+  0%, 100% { box-shadow: 0 4px 0 var(--ink), var(--cast-desk-sm), 0 0 0 2px rgba(244, 216, 134, 0.45); }
+  50%      { box-shadow: 0 4px 0 var(--ink), var(--cast-desk-sm), 0 0 0 5px rgba(244, 216, 134, 0.9); }
+}
+/* a bought card leaves a dark, empty slot in the shop: no vellum, no desk showing through */
+.scard.sold, #app.phase-shop .scard.sold {
+  opacity: 1;
+  filter: none;
+  animation: none;
+  background: linear-gradient(180deg, #24140a 0 50%, #1c0f07 50%);
+  border-color: var(--ink);
+  box-shadow: inset 0 4px 0 rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(211, 162, 59, 0.16);
+}
+.scard.sold .ftag, .scard.sold .rar-dot { visibility: hidden; }
+.scard.sold .scard-price { color: rgba(211, 162, 59, 0.42); text-shadow: none; }
+.rar-dot { box-shadow: 0 0 0 1.5px var(--ink); }
+.rar-dot.rar-rare, .rar-dot.rar-legendary { box-shadow: 0 0 0 1.5px var(--ink); }
+.workbench {
+  background: linear-gradient(180deg, rgba(30, 18, 9, 0.9) 0 50%, rgba(22, 13, 6, 0.9) 50%);
+  border: 2px solid var(--ink);
+  box-shadow: 3px 4px 0 var(--ink), var(--cast-desk-sm);
+}
+.wb-title { text-shadow: 0 1.5px 0 var(--ink); }
+.wb-filter {
+  background: linear-gradient(180deg, #3e2817 0 50%, #2f1e10 50%);
+  border: 1.5px solid var(--ink);
+  box-shadow: 0 2px 0 var(--ink);
+}
+.wb-filter.active { background: linear-gradient(180deg, #ebbd5a 0 50%, #c18c2b 50%); border-color: var(--ink); }
+.craft {
+  background: linear-gradient(180deg, #3e2817 0 50%, #2f1e10 50%);
+  border: 1.5px solid var(--ink);
+  box-shadow: 0 2px 0 var(--ink), 2px 4px 0 rgba(8, 3, 0, 0.3);
+}
+.craft.on { background: linear-gradient(180deg, #8a6420 0 50%, #6c4c16 50%); border-color: var(--ink); }
+.coin { border-color: var(--ink); background: radial-gradient(circle at 35% 30%, #fff6c8 0 22%, #f4cf5a 22% 62%, #c8901c 62%); box-shadow: 0 1px 0 var(--ink); }
+.coin-badge {
+  background: linear-gradient(180deg, #3d2a0e 0 50%, #2b1d09 50%);
+  border: 2px solid var(--ink);
+  box-shadow: 2px 3px 0 var(--ink), var(--cast-desk-sm);
+}
+.coin-badge b { text-shadow: 0 2px 0 var(--ink); }
+
+/* ---------------------------------------------------------------------
+   Sheets (menu, rules, bag), tooltips, toast and first-time tips
+   --------------------------------------------------------------------- */
+#modal { background: rgba(10, 5, 2, 0.74); }
+.sheet {
+  background: var(--art-vellum) center / cover no-repeat, #efdfb9;
+  border: 2.5px solid var(--ink);
+  box-shadow: 5px 6px 0 var(--ink), var(--cast-float);
+}
+.sheet-head { border-bottom: 2px solid rgba(42, 22, 9, 0.55); background: rgba(120, 80, 30, 0.1); }
+.sheet-foot { border-top: 2px solid rgba(42, 22, 9, 0.45); background: rgba(120, 80, 30, 0.08); }
+.menu-section {
+  background: rgba(255, 250, 235, 0.5);
+  border: 1.5px solid rgba(42, 22, 9, 0.55);
+  box-shadow: 2px 3px 0 rgba(92, 50, 16, 0.2);
+}
+.scale-preset { border-color: rgba(42, 22, 9, 0.5); background: rgba(120, 80, 30, 0.12); }
+.scale-preset.active { background: linear-gradient(180deg, #3d72d4 0 50%, #1f4fa3 50%); border-color: var(--ink); box-shadow: 0 2px 0 var(--ink); }
+.scale-preview { border-color: rgba(42, 22, 9, 0.45); }
+.stake-card {
+  background: linear-gradient(180deg, #fcf5df 0 50%, #efe0b9 50%);
+  border: 1.5px solid var(--ink);
+  border-left-width: 6px;
+  box-shadow: 2px 3px 0 var(--ink);
+}
+.stake-card:hover { box-shadow: 3px 4px 0 var(--ink); }
+.stake-card.picked { background: linear-gradient(180deg, #fffbe8 0 50%, #f4df9e 50%); outline-color: var(--lapis); }
+.stake-card.active { box-shadow: 2px 3px 0 var(--ink), inset 0 0 0 2px rgba(46, 132, 108, 0.55); }
+.stake-badge { border: 1px solid var(--ink); white-space: nowrap; }
+/* the order's name never breaks; if the badges don't fit beside it, they drop to their own line */
+.stake-card-top { flex-wrap: wrap; row-gap: 4px; }
+.stake-card-name { white-space: nowrap; }
+.stake-badges { flex: none; margin-left: auto; }
+/* the menu's start button: what it does, then the order on a smaller second line */
+.btn.start-order { flex: 1.6; flex-direction: column; gap: 1px; padding: 5px 10px; line-height: 1.1; }
+.btn.start-order small { font-size: 12.5px; letter-spacing: 0; }
+@media (max-width: 600px) {
+  .stake-card-name .sk-o { display: none; }   /* the section heading already says Religious Orders */
+}
+#tip {
+  background: var(--art-vellum) center / cover no-repeat, #fbf3dc;
+  border: 2px solid var(--ink);
+  box-shadow: 3px 4px 0 var(--ink), 7px 10px 0 rgba(8, 3, 0, 0.25);
+}
+#toast {
+  background: linear-gradient(180deg, #fff4cf 0 50%, #edd282 50%);
+  border: 2px solid var(--ink);
+  box-shadow: 3px 4px 0 var(--ink), 7px 10px 0 rgba(8, 3, 0, 0.25);
+}
+#coach {
+  background: var(--art-vellum) center / cover no-repeat, #fbf3dc;
+  border: 2px solid var(--ink);
+  box-shadow: 4px 5px 0 var(--ink), 9px 12px 0 rgba(8, 3, 0, 0.28), 0 0 0 4px rgba(244, 216, 134, 0.35);
+}
+#coach::before { border-bottom-color: var(--ink); }
+#coach.above::before { border-top-color: var(--ink); }
+@keyframes coachPulse {
+  0%, 100% { box-shadow: 0 0 0 2px var(--ink), 0 0 0 4px rgba(244, 216, 134, 0.85); }
+  50%      { box-shadow: 0 0 0 2px var(--ink), 0 0 0 7px rgba(244, 216, 134, 0.95); }
+}
+.float { border: 1.5px solid var(--ink); box-shadow: 2px 3px 0 var(--ink); }
+
+/* ---------------------------------------------------------------------
+   Full-screen scenes: home on the painted desk; win, lose and endless skies blend smoothly
+   (same colours as the old flat bands), with the cards and buttons on them still flat
+   --------------------------------------------------------------------- */
+.scene h1 { text-shadow: 0 3px 0 var(--ink), 3px 6px 0 rgba(8, 3, 0, 0.3); }
+.scene.home h1 { text-shadow: 0 3px 0 var(--ink), 4px 7px 0 rgba(8, 3, 0, 0.35); }
+.scene .speech {
+  background: var(--art-vellum) center / cover no-repeat, #f6ecd2;
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink), var(--cast-desk-sm);
+}
+.scene .speech::before { border-bottom-color: var(--ink); top: -9px; }
+.scene.win .bg { background: radial-gradient(circle at 50% 28%, #fffdf4 6%, #fff3cf 18%, #f3d98d 32%, #dfd4ae 48%, #b8c9e8 66%, #8fa8d6 83%, #7f9ccf 95%); }
+.scene.win h1 { text-shadow: 0 2px 0 #fff, 3px 5px 0 rgba(120, 85, 18, 0.25); }
+.scene.lose .bg { background: radial-gradient(ellipse 60% 40% at 50% 32%, #2a313d 20%, #212731 55%, rgba(33, 39, 49, 0) 85%), linear-gradient(180deg, #1b2029 25%, #141820 68%, #0c0f14 95%); }
+.scene.lose .speech { background: linear-gradient(180deg, #d9dde3 0 50%, #c3c9d2 50%); }
+.scene.rest .bg { background: linear-gradient(180deg, #0d1030 8%, #1c1a46 28%, #2a2058 43%, #48306e 56%, #6a3f78 67%, #9a5f6a 77%, #c9845a 87%, #f2c27a 97%); }
+/* ---- Beatitude: a blinding light for an infinite score (showBeatitude and beatificMotes in core.js) ----
+   Order of the light, back to front: the sky, two sets of God rays, rings of light, motes (canvas),
+   the sun, and a white flash that slowly clears. The card then rises out of the light. */
+#beatific-layer {
+  --sun-y: 20%;
+  background: radial-gradient(circle at 50% var(--sun-y), #fff 0%, #fff6d6 9%, #ffe08a 22%, #f4b445 40%, #d07a22 60%, #8a4012 80%, #3e1a08 100%);
+  justify-content: flex-start;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 16px 16px max(16px, 6vh);
+}
+@media (max-aspect-ratio: 4/5) { #beatific-layer { --sun-y: 15%; } }
+.bf-bg { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.bf-rays {
+  position: absolute; left: 50%; top: var(--sun-y);
+  width: 180vmax; height: 180vmax; margin: -90vmax 0 0 -90vmax; border-radius: 50%;
+  -webkit-mask-image: radial-gradient(circle closest-side, #000 0%, rgba(0, 0, 0, 0.8) 18%, rgba(0, 0, 0, 0.3) 55%, transparent 100%);
+  mask-image: radial-gradient(circle closest-side, #000 0%, rgba(0, 0, 0, 0.8) 18%, rgba(0, 0, 0, 0.3) 55%, transparent 100%);
+  opacity: 0; will-change: transform;
+}
+/* broad rays turning one way, fine rays turning the other, so the light shimmers where they cross */
+.bf-rays-a {
+  background: repeating-conic-gradient(from 0deg, rgba(255, 251, 230, 0) 0deg, rgba(255, 251, 230, 0.72) 5deg, rgba(255, 251, 230, 0) 10deg, rgba(255, 251, 230, 0) 20deg);
+  animation: bfRaysIn 2.6s ease-out 0.4s forwards, bfSpin 90s linear infinite;
+}
+.bf-rays-b {
+  background: repeating-conic-gradient(from 6deg, rgba(255, 255, 255, 0) 0deg, rgba(255, 255, 255, 0.5) 1.6deg, rgba(255, 255, 255, 0) 3.2deg, rgba(255, 255, 255, 0) 12deg);
+  animation: bfRaysIn 2.6s ease-out 0.9s forwards, bfSpin 140s linear infinite reverse;
+}
+@keyframes bfRaysIn { to { opacity: 1; } }
+@keyframes bfSpin { to { transform: rotate(360deg); } }
+/* three rings of light pulse out of the sun, again every seven seconds */
+.bf-ring {
+  position: absolute; left: 50%; top: var(--sun-y);
+  width: 30vmin; height: 30vmin; margin: -15vmin 0 0 -15vmin; border-radius: 50%;
+  border: 3px solid rgba(255, 255, 245, 0.95);
+  box-shadow: 0 0 22px 4px rgba(255, 240, 200, 0.7), inset 0 0 22px 4px rgba(255, 240, 200, 0.7);
+  opacity: 0; animation: bfRing 7s ease-out var(--d, 1s) infinite;
+}
+@keyframes bfRing {
+  0% { opacity: 0; transform: scale(0.35); }
+  4% { opacity: 0.95; }
+  40%, 100% { opacity: 0; transform: scale(5.5); }
+}
+.bf-motes { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* the sun: a white core in a wide bloom; it shrinks out of the white, then breathes */
+.bf-sun {
+  position: absolute; left: 50%; top: var(--sun-y);
+  width: 36vmin; height: 36vmin; margin: -18vmin 0 0 -18vmin; border-radius: 50%;
+  background: radial-gradient(circle closest-side, #fff 34%, rgba(255, 254, 244, 0.92) 44%, rgba(255, 244, 205, 0.55) 62%, rgba(255, 226, 150, 0) 100%);
+  animation: bfSunIn 3.4s cubic-bezier(0.2, 0.7, 0.2, 1) both, bfBreathe 4.5s ease-in-out 3.4s infinite;
+}
+.bf-sun::before {
+  content: ""; position: absolute; inset: -90%; border-radius: 50%;
+  background: radial-gradient(circle closest-side, rgba(255, 250, 228, 0.6), rgba(255, 236, 180, 0.22) 50%, rgba(255, 230, 160, 0));
+}
+@keyframes bfSunIn { from { transform: scale(2.6); } to { transform: scale(1); } }
+@keyframes bfBreathe { 50% { transform: scale(1.07); } }
+/* the white of the glitch lingers under the fading whiteout, so the light clears slowly */
+.bf-flash {
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% var(--sun-y), #fff 35%, rgba(255, 253, 245, 0.92) 70%, rgba(255, 248, 230, 0.85) 100%);
+  animation: bfFlash 3.8s ease-in both;
+}
+@keyframes bfFlash { from { opacity: 1; } to { opacity: 0; } }
+/* the card rises out of the light, then its lines arrive one by one */
+#beatific-layer .beatific-card {
+  margin-top: auto; flex: none;
+  box-shadow: 5px 6px 0 var(--ink), 14px 20px 0 rgba(80, 45, 0, 0.3), 0 0 70px 14px rgba(255, 246, 214, 0.6);
+  animation: bfCardRise 1.5s cubic-bezier(0.18, 0.8, 0.25, 1) 2s both;
+}
+@keyframes bfCardRise { from { opacity: 0; transform: translateY(80px) scale(0.94); } to { opacity: 1; transform: none; } }
+.beatific-card > * { animation: bfLineIn 0.8s ease-out both; animation-delay: calc(2.5s + var(--i, 0) * 0.2s); }
+@keyframes bfLineIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.bf-kicker { font-family: 'Cinzel', serif; font-weight: 900; font-size: 11px; letter-spacing: 0.2em; color: #7a5512; }
+.bf-line.big { font-size: 17px; }
+.bf-line.small { font-size: 14.5px; color: #5b4128; }
+@media (max-width: 600px) {
+  #beatific-layer .beatific-card { padding: 18px 16px; gap: 9px; }
+  #beatific-layer .beatific-card h1 { font-size: 44px; }
+  .bf-line.big { font-size: 16px; }
+  .bf-line.small { font-size: 13.5px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bf-rays, .bf-sun, #beatific-layer .beatific-card, .beatific-card > * { animation: none !important; }
+  .bf-rays { opacity: 1; }
+  .bf-flash, .bf-ring { display: none; }
+}
+.beatific-card {
+  background: var(--art-vellum) center / cover no-repeat, #fffcf0;
+  border: 2.5px solid var(--ink);
+  box-shadow: 5px 6px 0 var(--ink), 14px 20px 0 rgba(80, 45, 0, 0.3);
+}
+
+/* ---------------------------------------------------------------------
+   The guardian angel: a ball of light that bobs like a fairy, with tiny sparkles
+   popping off at random. .angel-orb stays put and holds the sparkles, .orb-body bobs, and
+   the ball itself (.angel) breathes. The loops divide 12 s, so the bob keeps its
+   rhythm when the page redraws.
+   --------------------------------------------------------------------- */
+.angel-orb { position: relative; display: inline-block; flex: none; line-height: 0; vertical-align: middle; }
+.orb-body { display: block; line-height: 0; animation: orbBobFairy 3s ease-in-out infinite; }
+.angel { animation: orbGlow 3s ease-in-out infinite; }
+@keyframes orbGlow {
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(255, 205, 100, 0.55)); }
+  50%      { filter: drop-shadow(0 0 7px rgba(255, 220, 130, 0.95)); }
+}
+.angel-line { overflow: visible; }
+.scene .angel-big { animation: none; }
+.scene .angel-big .angel-orb, .scene .angel-big .orb-body { width: 100%; height: 100%; }
+.scene.lose .orb-body { animation: none; }
+
+@keyframes orbBobFairy {
+  0%, 100% { translate: 0 0; }
+  25% { translate: 4% -14%; }
+  50% { translate: 0 -20%; }
+  75% { translate: -4% -9%; }
+}
+
+/* a sparkle: a tiny four-point star of light that rises and fades */
+.spark {
+  position: absolute;
+  pointer-events: none;
+  background: #fff6d8;
+  clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+  animation: sparkRise 1s ease-out forwards;
+  z-index: 2;
+}
+@keyframes sparkRise {
+  0%   { opacity: 0; transform: scale(.2) rotate(0deg); }
+  25%  { opacity: 1; transform: scale(1) rotate(25deg); }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(.3) rotate(70deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .angel, .angel-orb .orb-body { animation: none !important; }
+  .spark { display: none; }
+}
