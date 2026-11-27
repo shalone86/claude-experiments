@@ -380,6 +380,17 @@ html, body { background: #1a0f07; }
   0%, 100% { box-shadow: 0 4px 0 var(--ink), var(--cast-desk-sm), 0 0 0 2px rgba(244, 216, 134, 0.45); }
   50%      { box-shadow: 0 4px 0 var(--ink), var(--cast-desk-sm), 0 0 0 5px rgba(244, 216, 134, 0.9); }
 }
+/* a bought card leaves a dark, empty slot in the shop: no vellum, no desk showing through */
+.scard.sold, #app.phase-shop .scard.sold {
+  opacity: 1;
+  filter: none;
+  animation: none;
+  background: linear-gradient(180deg, #24140a 0 50%, #1c0f07 50%);
+  border-color: var(--ink);
+  box-shadow: inset 0 4px 0 rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(211, 162, 59, 0.16);
+}
+.scard.sold .ftag, .scard.sold .rar-dot { visibility: hidden; }
+.scard.sold .scard-price { color: rgba(211, 162, 59, 0.42); text-shadow: none; }
 .rar-dot { box-shadow: 0 0 0 1.5px var(--ink); }
 .rar-dot.rar-rare, .rar-dot.rar-legendary { box-shadow: 0 0 0 1.5px var(--ink); }
 .workbench {
@@ -482,3 +493,13 @@ html, body { background: #1a0f07; }
   border: 2.5px solid var(--ink);
   box-shadow: 5px 6px 0 var(--ink), 14px 20px 0 rgba(80, 45, 0, 0.3);
 }
+
+/* ---------------------------------------------------------------------
+   The guardian angel: a ball of light that breathes
+   --------------------------------------------------------------------- */
+.angel { animation: orbGlow 3.2s ease-in-out infinite; }
+@keyframes orbGlow {
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(255, 205, 100, 0.55)); }
+  50%      { filter: drop-shadow(0 0 7px rgba(255, 220, 130, 0.95)); }
+}
+@media (prefers-reduced-motion: reduce) { .angel { animation: none; } }

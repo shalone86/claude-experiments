@@ -236,6 +236,12 @@ function toRoman(n) {
   return o;
 }
 
+// Endless goal ramp (tune these to make endless easier or harder).
+const ENDLESS_START_DIGITS = Math.log10(175e3); // first endless goal: 175,000
+const ENDLESS_STEP = 2;      // digits added by the first step of the ramp
+const ENDLESS_GROWTH = 1.3;  // each stage's extra digits grow 30%
+const ENDLESS_TOP = 1e300;   // the highest goal; infinity is about 1.8e308
+
 function roundNiceGoal(v) {
   if (!isFinite(v)) return 1e200;
   if (v < 1000) return Math.max(10, Math.round(v / 10) * 10);
@@ -252,17 +258,20 @@ function getRunStageSpec(terrace, stageInTerrace, auditSpec = null, goalScale = 
     baseGoal = TERRACE_GOALS[terrace][stageInTerrace];
     reward = TERRACE_REWARDS[terrace][stageInTerrace];
   } else {
-    const e = terrace - TERRACES_MAX;
-    const baseStages = [175e3, 500e3, 1.5e6];
-    baseGoal = Math.min(1e200, baseStages[stageInTerrace] * Math.pow(10, e * 1.4 + 0.35 * e * e));
+    // Endless: the number of digits in the goal grows by ENDLESS_GROWTH (30%) every stage, so it
+    // soon outruns steady upgrades. Only a real power engine keeps up, and by about Endless 14 the
+    // goal sits at ENDLESS_TOP, right next to infinity: surviving that far means you break the scale.
+    const s = (terrace - TERRACES_MAX) * 3 + stageInTerrace;
+    const digits = ENDLESS_START_DIGITS + ENDLESS_STEP * (Math.pow(ENDLESS_GROWTH, s) - 1);
+    baseGoal = Math.min(ENDLESS_TOP, Math.pow(10, digits));
     reward = 24 + stageInTerrace * 4;
   }
 
   const resolved = typeof auditSpec === 'string' ? createAuditInstance(auditSpec) : auditSpec;
   const audit = isAuditStage ? resolved : null;
   const mult = (audit ? (audit.goalMult || 1) : 1) * (typeof goalScale === 'number' && goalScale > 0 ? goalScale : 1);
-  const rawGoal = baseGoal * mult;
-  const goal = roundNiceGoal(rawGoal);
+  const rawGoal = terrace < TERRACES_MAX ? baseGoal * mult : Math.min(ENDLESS_TOP, baseGoal * mult);
+  const goal = rawGoal >= ENDLESS_TOP ? ENDLESS_TOP : roundNiceGoal(rawGoal);
 
   const stageTitle = isAuditStage ? (audit ? audit.name : 'The Audit') : (stageInTerrace === 0 ? 'Vigil I' : 'Vigil II');
   const label = terrace < TERRACES_MAX
@@ -387,7 +396,8 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 /* =====================================================================
    SHARED UI UTILITIES
    ===================================================================== */
-const ANGEL_SVG = `<svg class="angel" viewBox="0 0 40 40" aria-hidden="true"><ellipse cx="20" cy="7" rx="7.5" ry="2.6" fill="none" stroke="#d3a23b" stroke-width="1.8"/><path d="M16 22 C6 14 1 20 2 30 C8 26 12 27 15 29 Z" fill="#f4d886" stroke="#7a5512" stroke-width=".8"/><path d="M24 22 C34 14 39 20 38 30 C32 26 28 27 25 29 Z" fill="#f4d886" stroke="#7a5512" stroke-width=".8"/><circle cx="20" cy="14" r="4.6" fill="#f2e6c9" stroke="#5a4128" stroke-width=".9"/><path d="M20 19 L12.5 38 H27.5 Z" fill="#f2e6c9" stroke="#5a4128" stroke-width=".9"/><path d="M20 22 V34 M16.5 26 H23.5" stroke="#b5301c" stroke-width="1.3"/></svg>`;
+// Your guardian angel is a glowing ball of light (no figure): flat rings of glow round a bright core.
+const ANGEL_SVG = `<svg class="angel" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19.5" fill="#ffd978" opacity=".16"/><circle cx="20" cy="20" r="15.5" fill="#ffd978" opacity=".3"/><circle cx="20" cy="20" r="12" fill="#ffe7a0" opacity=".6"/><circle cx="20" cy="20" r="8.6" fill="#fff6d8" stroke="#a8730f" stroke-width="1.3"/><circle cx="17.4" cy="17.2" r="2.5" fill="#fff"/></svg>`;
 
 const JUDGE_OK = [
   'A worthy word.',

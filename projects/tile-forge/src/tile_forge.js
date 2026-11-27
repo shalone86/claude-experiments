@@ -115,7 +115,7 @@ const TileForge = (() => {
   const tipFor = (u) => TIPS[u.id] + (ONE_COPY.has(u.id) ? '' : ' Goes on every tile of the letter you pick.');
   // Forge colours: blue points, red multiply, purple replay, gold light and money, green tricks.
   const FORGE_COL = { pts: '#1f4fa3', mult: '#b5301c', echo: '#7b3ba8', gold: '#a8730f', green: '#2e846c' };
-  const TAG_H = { big: 34, inline: 19, mini: 15 };
+  const TAG_H = { big: 34, inline: 19, mini: 15, tiny: 12 };
   const FLAME_PATH = 'M6 .4C7.6 4 11.2 6 11.2 10.2a5.2 5.2 0 0 1-10.4 0c0-2.3 1.2-3.7 2.5-5 .2 1.9 1 2.9 2.1 2.9C5 5 5.2 2.6 6 .4z';
   const countBubble = (x, h, n) =>
     `<circle cx="${x}" cy="${h * 0.24}" r="${h * 0.28}" fill="#2b1b0f" stroke="#f4d886" stroke-width="1"/>` +
@@ -142,6 +142,20 @@ const TileForge = (() => {
       `<polygon points="${pts}" fill="${col}" stroke="#2b1b0f" stroke-opacity=".35" stroke-width="${(j + 1.6).toFixed(1)}" stroke-linejoin="round"/>` +
       `<polygon points="${pts}" fill="${col}" stroke="${col}" stroke-width="${j.toFixed(1)}" stroke-linejoin="round"/>` +
       body + (opts.count > 1 ? countBubble(W - h * 0.3, h, opts.count) : '') + `</svg>`;
+  }
+  // The width glyphHtml gives a tag, so a tile can tell how many fit across it.
+  function glyphW(u, cls, count) {
+    const [dir, label] = GLYPHS[u.id] || ['self', u.chip];
+    const h = TAG_H[cls] || TAG_H.inline;
+    const w = h * (label === '*' ? 1.05 : 0.5 + 0.4 * [...label].length);
+    const p = h * 0.4, j = h * 0.24;
+    const L = dir === 'left' || dir === 'both', R = dir === 'right' || dir === 'both';
+    return (L ? p : 0) + w + (R ? p : 0) + j + 2 + (count > 1 ? h * 0.45 : 0);
+  }
+  // How wide a row of tags may be: about one tile, so tags never spill onto the next tile.
+  function tagBudget() {
+    const w = window.innerWidth || 1024;
+    return (w <= 600 ? Math.max(40, Math.min(48, w * 0.116)) : 54) + 4;
   }
   function moreChip(n, cls = 'mini') {
     const h = TAG_H[cls], W = h * 1.5, H = h + 2;
@@ -1024,13 +1038,46 @@ const TileForge = (() => {
     // Up to 3 forges show as tags. Past that: the shop shows a forge bar; the rack and board show the top two and +N.
     const ranked = entries.slice().sort((a, b) => FORGE_RANK(a[0]) - FORGE_RANK(b[0]));
     let chipsHtml = '';
+    let tagRows = 0;
     if (ranked.length > 3 && opts.bar) {
       chipsHtml = forgeBarHtml(ranked);
     } else if (ranked.length) {
+      // One row of tags when they fit across the tile. When they don't, smaller tags stack in two
+      // rows, each no wider than the tile, and anything left over becomes a +N tag.
+      const budget = tagBudget();
       const keep = ranked.length > 3 ? ranked.slice(0, 2) : ranked;
-      chipsHtml = `<div class="tile-chips">${keep.map(([mId, cnt]) => glyphHtml(UPGRADES[mId], { count: cnt, cls: 'mini' })).join('')}` +
-        `${ranked.length > 3 ? moreChip(ranked.length - 2) : ''}</div>`;
+      const rowW = keep.reduce((a, [mId, cnt]) => a + glyphW(UPGRADES[mId], 'mini', cnt), 0) +
+        (ranked.length > 3 ? TAG_H.mini * 1.5 : 0);
+      if (rowW <= budget) {
+        tagRows = 1;
+        chipsHtml = `<div class="tile-chips">${keep.map(([mId, cnt]) => glyphHtml(UPGRADES[mId], { count: cnt, cls: 'mini' })).join('')}` +
+          `${ranked.length > 3 ? moreChip(ranked.length - 2) : ''}</div>`;
+      } else {
+        const moreW = TAG_H.tiny * 1.5;
+        const rows = [[]];
+        let x = 0;
+        for (const r of ranked) {
+          const w = glyphW(UPGRADES[r[0]], 'tiny', r[1]);
+          if (x + w > budget && rows[rows.length - 1].length) {
+            if (rows.length === 2) break;
+            rows.push([]);
+            x = 0;
+          }
+          rows[rows.length - 1].push(r);
+          x += w;
+        }
+        let shown = rows.reduce((a, row) => a + row.length, 0);
+        const last = rows[rows.length - 1];
+        const lastW = () => last.reduce((a, [mId, cnt]) => a + glyphW(UPGRADES[mId], 'tiny', cnt), 0);
+        while (shown < ranked.length && last.length > 1 && lastW() + moreW > budget) { last.pop(); shown--; }
+        const extra = ranked.length - shown;
+        tagRows = rows.length;
+        chipsHtml = `<div class="tile-chips stacked">` + rows.map((row, ri) =>
+          `<div class="tchip-row">${row.map(([mId, cnt]) => glyphHtml(UPGRADES[mId], { count: cnt, cls: 'tiny' })).join('')}` +
+          `${ri === rows.length - 1 && extra > 0 ? moreChip(extra, 'tiny') : ''}</div>`).join('') + `</div>`;
+      }
     }
+    if (tagRows > 1) cls.push('tags2');
 
     const ltrHtml = opts.fill
       ? `<span class="ltr res">${esc(opts.fill)}</span>`
@@ -1993,6 +2040,15 @@ const TileForge = (() => {
   }
   document.addEventListener('tf-coach-refresh', () => runCoach());
   window.addEventListener('scroll', () => { if (coachCur) runCoach(); }, { passive: true });
+  // tags on tiles are packed to the screen's width, so turning the phone redraws them
+  let lastTagBudget = 0, resizeTimer = 0;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      const b = tagBudget();
+      if (b !== lastTagBudget && !S.busy) { lastTagBudget = b; render(); }
+    }, 200);
+  });
 
   function handleAction(act, arg) {
     switch (act) {

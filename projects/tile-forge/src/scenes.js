@@ -201,13 +201,14 @@ function glitchToWhite(duration = 2800) {
 }
 
 // ---- Score smoke: the further a word goes past what you need, the higher smoke rises from
-// behind the tiles (like Balatro's flames). Level 1 is reaching the goal, then each extra
-// power of ten climbs higher, and level 5 (a million over) fills the screen. ----
+// behind the tiles (like Balatro's flames). Level 1 is reaching the goal, then each ten times
+// over climbs higher (10x, 100x, 1000x). Level 5, smoke over the whole screen, is kept for
+// infinity alone, so the big moment only comes with the glitch. ----
 function scoreSmokeLevel(total, need) {
   if (!(total >= need) || need < 0) return 0;
   if (!isFinite(total)) return 5;
-  const over = total - need;
-  return over < 1000 ? 1 : over < 1e4 ? 2 : over < 1e5 ? 3 : over < 1e6 ? 4 : 5;
+  const ratio = need > 0 ? total / need : 1e4;
+  return ratio < 10 ? 1 : ratio < 100 ? 2 : ratio < 1000 ? 3 : 4;
 }
 const SMOKE_RISE = [0, 120, 230, 360, 520];
 let smokeLevel = 0, smokeTimer = 0;

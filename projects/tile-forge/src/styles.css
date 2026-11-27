@@ -2837,9 +2837,15 @@ button:disabled {
   font-weight: 800;
 }
 .ftag text { font-weight: 800; }
-.ftag.mini { filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.45)); }
+.ftag.mini, .ftag.tiny { filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.45)); }
 .tile-chips { top: -9px; left: -4px; right: auto; gap: 0; display: flex; align-items: center; max-width: calc(100% + 6px); }
 .tile-chips .ftag + .ftag { margin-left: -1px; }
+/* a busy tile: smaller tags in two rows, each row no wider than the tile; the letter steps down */
+.tile-chips.stacked { flex-direction: column; align-items: flex-start; max-width: none; top: -8px; }
+.tile-chips.stacked .tchip-row { display: flex; align-items: center; }
+.tile-chips.stacked .tchip-row + .tchip-row { margin-top: -1px; }
+.tile.tags2 .ltr { margin-top: 10px; }
+#app.phase-shop .wb-tiles .tile.tags2 .ltr { margin-top: 8px; }
 .fbar {
   position: absolute;
   top: -5px;
@@ -3355,3 +3361,42 @@ button:disabled {
   filter: blur(4px);
 }
 @media (prefers-reduced-motion: reduce) { .score-smoke { display: none; } }
+
+/* ---- Phones: keep the ledger page from overflowing ----
+   The page is a size container, so on a short screen (or in an Audit, where the banner takes room)
+   the candles and the writing line shrink to fit instead of text spilling under the rack. */
+@media (max-width: 600px) {
+  #app:not(.phase-shop) .book-page { container: page / size; }
+  /* in play the audit's name is already on the plate above, so the banner keeps just the rule */
+  #app:not(.phase-shop) .audit-banner { font-size: 12px; line-height: 1.32; padding: 4px 9px; }
+  #app:not(.phase-shop) .audit-banner b { display: none; }
+  #app:not(.phase-shop) .audit-banner::before { content: "⚔️ "; }
+  #app:not(.phase-shop) .plate-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #app.boss-stage:not(.phase-shop) .plate-name { font-size: 12px; }
+  #app:not(.phase-shop) .judgement { line-height: 1.2; }
+  #app.phase-shop .audit-banner { line-height: 1.3; }
+}
+@container page (max-height: 236px) {
+  #app .book-page .candle-head { height: 42px; }
+  #app .book-page .cflame { --cs: 0.7; }
+  #app .book-page .vcell { max-height: 56px; }
+}
+@container page (max-height: 206px) {
+  #app .book-page .candle-head { height: 34px; }
+  #app .book-page .cflame { --cs: 0.6; }
+  #app .book-page .vcell { max-height: 48px; }
+  #app .book-page .angel-line { min-height: 20px; }
+  #app .book-page .angel { width: 18px; height: 18px; }
+  #app .book-page .word-score-box { padding: 2px 12px; }
+  #app .book-page .word-score-box b { font-size: 19px; }
+}
+@container page (max-height: 182px) {
+  #app .book-page .candle-head { height: 28px; }
+  #app .book-page .cflame { --cs: 0.5; }
+  #app .book-page .vcell { max-height: 42px; }
+  #app .book-page .word-score-sub { font-size: 11px; }
+}
+@container page (max-height: 160px) {
+  /* the plate above already shows the score and the goal */
+  #app .book-page .word-score-sub { display: none; }
+}

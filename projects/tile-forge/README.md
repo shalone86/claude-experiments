@@ -67,6 +67,15 @@ it glow warm (×2). Empty slots show their multiplier, and every flame flickers 
   *The Scriptorium Vigil*.
 - **One-word clears:** when a single word covers the whole goal, the choir swells and a censer swings
   across the screen. Ordinary clears just chime.
+- **Score smoke:** smoke rises behind a word that passes the goal, higher at 10×, 100× and 1000× over.
+  Smoke over the whole screen, the glitch and the white-out come only with an infinite score.
+- **Your guardian angel** is a glowing ball of light (no figure), on the page and on every screen.
+- **Busy tiles:** forge tags sit in one row when they fit across the tile. When they don't (often on a
+  phone), smaller tags stack in two rows, each no wider than the tile, and the rest show as `+N`.
+- **Bought cards** leave a dark, empty slot in the shop.
+- **Phones:** the ledger page shrinks its candles and writing line when the screen is short (or an
+  Audit banner takes room), so the score line never spills under the rack. In play the Audit banner
+  shows just the rule, since the plate above already names the Audit.
 - **Seeing a tile's forges:** hover it (desktop) or press and hold it (phone). Tooltips colour the key
   words: red multiply, blue points, orange light, purple replay, gold money, green wild and copy.
 - **Strongest** in the shop's letter grid sorts your letters by a rough strength score (points through
@@ -87,7 +96,7 @@ you run out of words. Menu → Sound has Music and Effects sliders, saved on the
 - **Letter-Wide Forging:** Shop cards upgrade **ALL copies** of a letter in your bag (grouped as `×N` Letter Stacks on the Workbench). Mix `+Score`, `Multiply`, `Replay`, stackable `Candlelight` (`WARM ×2`, `BRIGHT ×3`, `BLAZING ×6+`), `Clone`, `Forge Combo` (digraphs/trigraphs), and `Wild` upgrades.
 - **31 Rarity-Tiered Upgrades:** `Common`, `Uncommon`, `Rare`, and `Legendary` (`Word ^1.25`), plus Workbench thinning (`🔥 Burn Tile`, `📑 Clone +1`, `🔗 Fuse 2 Tiles`).
 - **Wilds & Clones:** Max `2` Wild `?` tiles per run. Wilds keep their forges (a Wild `?` can't take new ones, and neighbours can't retrigger it). A letter can carry one wild forge (`◀?` or `?▶`), on top of any other forges; a tile made wild during play keeps its forges but can't make its own neighbour wild, so wilds don't chain. Every clone, paid ($11) or from a ⧉ forge, copies the tile with all its forges; the anti-spam Audits keep that in check.
-- **7 Terraces × 15 Audits + Anti-Spam Audits:** Each Terrace plays Vigil I → Vigil II → Audit, unlocking Endless mode after Terrace 7 (hitting `∞ Beatitude` ends the run). Playing the same word `>= 3` times (`Index Expurgatorius`) or relying on the same tile `>= 7` times (`Censored Glyph`) schedules a targeted Audit against that spam. A vowel-heavy build (70% of forges on vowels, or 60% of letters played are vowels) schedules `The Vowel Fast`: vowels score 0 and their forges don't fire for that Audit.
+- **7 Terraces × 15 Audits + Anti-Spam Audits:** Each Terrace plays Vigil I → Vigil II → Audit, unlocking Endless mode after Terrace 7 (hitting `∞ Beatitude` ends the run). In Endless the goal's number of digits grows 30% each stage (`ENDLESS_*` in `src/core.js`): about 1e10 by Endless 9, 1e50 by Endless 12, and 1e300 (right next to infinity) at Endless 14. Steady upgrades can't keep up; only a real power engine (Word ^1.25 with replays) reaches the top, and surviving there means you break the scale. Playing the same word `>= 3` times (`Index Expurgatorius`) or relying on the same tile `>= 7` times (`Censored Glyph`) schedules a targeted Audit against that spam. A vowel-heavy build (70% of forges on vowels, or 60% of letters played are vowels) schedules `The Vowel Fast`: vowels score 0 and their forges don't fire for that Audit.
 - **Live Goal Scale (`10%`–`200%`) & 6 Stakes:** Open `⚙ Menu` to adjust the live goal multiplier anytime or challenge cumulative Stakes (`White`, `Red`, `Green`, `Blue`, `Purple`, `Gold`).
 - **Word Definition Preview:** Displays a 1-line truncated dictionary definition beside the angel judgement badge when a valid word is formed.
 
