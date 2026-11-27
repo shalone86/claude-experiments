@@ -12,6 +12,17 @@ LEX_PATH = SRC / "lexicon.packed.txt"
 def main():
     template = (SRC / "template.html").read_text(encoding="utf-8")
     css = (SRC / "styles.css").read_text(encoding="utf-8")
+    # the painted look (round 4) sits on top; its three pictures go inside the page so it stays one file
+    painted = (SRC / "painted.css").read_text(encoding="utf-8")
+    art_bytes = 0
+    for pic in sorted((SRC / "art").glob("*.webp")):
+        ref = f"url(art/{pic.name})"
+        assert ref in painted, f"{pic.name} is not used in painted.css"
+        data = pic.read_bytes()
+        art_bytes += len(data)
+        painted = painted.replace(ref, "url(data:image/webp;base64," + base64.b64encode(data).decode() + ")")
+    assert "url(art/" not in painted, "painted.css names a picture that is not in src/art/"
+    css = css + "\n\n/* ==== painted.css ==== */\n" + painted
     lex = LEX_PATH.read_text(encoding="utf-8").strip()
 
     js_parts = []
@@ -37,7 +48,8 @@ def main():
         (ROOT / target).write_text(out, encoding="utf-8")
 
     print(
-        f"Built index.html and tile-forge.html ({len(out):,} bytes, lexicon {len(lex):,} bytes, music {''.join(audio) or 'none'})"
+        f"Built index.html and tile-forge.html ({len(out.encode()):,} bytes, lexicon {len(lex):,} bytes, "
+        f"art {art_bytes:,} bytes, music {''.join(audio) or 'none'})"
     )
 
 

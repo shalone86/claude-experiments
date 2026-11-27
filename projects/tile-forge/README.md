@@ -14,7 +14,7 @@ Live at **https://shalonely.com/tileforge/** (served via its own Cloudflare Work
 python3 build.py
 ```
 
-This bundles `src/template.html`, `src/styles.css`, `src/core.js`, `src/tile_forge.js`, and `src/lexicon.packed.txt` into standalone `index.html` and `tile-forge.html` files that work offline in any browser.
+This bundles `src/template.html`, `src/styles.css` + `src/painted.css`, the three pictures in `src/art/`, the JS files, the music and `src/lexicon.packed.txt` into standalone `index.html` and `tile-forge.html` files that work offline in any browser (fonts come from Google Fonts).
 
 ### Publish to Cloudflare
 
@@ -23,6 +23,23 @@ sh web/deploy.sh
 ```
 
 Builds `tile-forge.html`, copies it to `web/public/tileforge/index.html`, and runs `wrangler deploy`.
+
+## The look (painted, round 4)
+
+A flat painted 2D illustration: cel-shaded colour bands, bold sepia ink outlines, warm umber to cream.
+
+- **Three pictures** (`src/art/*.webp`, about 115 KB): the desk with its stone wall and props (wide for
+  screens wider than tall, tall for upright phones) and the ledger's vellum paper. They are rendered in
+  Blender from `art-src/` (no characters, only props) and put inside the page by `build.py`.
+- **Everything else is CSS** (`src/painted.css`, laid over `styles.css`): tiles, buttons, the ledger,
+  candles, cards, sheets. No blur filters were added and nothing new animates.
+- **2D shadows:** an ink lip right under each thing, plus a flat two-band cast shadow falling down and
+  to the right, away from the big desk candle. Tiles on the line lean their shadow away from the line's
+  own candle (`--d` on each slot). The candles throw a short shadow too.
+- To go back to the old look, drop `painted.css` from `build.py`.
+
+**Redrawing the pictures:** `blender -b -P art-src/build_scene.py -P art-src/build_backgrounds.py -- --no-render --out renders`,
+then `python3 art-src/to_webp.py renders` and `python3 build.py`.
 
 ## Reading the forges
 
@@ -53,7 +70,8 @@ it glow warm (×2). Empty slots show their multiplier, and every flame flickers 
 - **Seeing a tile's forges:** hover it (desktop) or press and hold it (phone). Tooltips colour the key
   words: red multiply, blue points, orange light, purple replay, gold money, green wild and copy.
 - **Strongest** in the shop's letter grid sorts your letters by a rough strength score (points through
-  every forge), so you can see what to build next.
+  every forge), so you can see what to build next. **Most** puts the letters you have the most copies
+  of first (6 E's, then 4 A's...), with forged and plain copies of a letter kept together.
 - **First-time tips** light up where to tap, once each: the rack, playing a word, the candle, holding a
   tile, picking an upgrade, forging a letter, and the first Audit. Menu → "Show first-time tips again"
   resets them. They live in `src/scenes.js`.
@@ -79,6 +97,9 @@ you run out of words. Menu → Sound has Music and Effects sliders, saved on the
 |---|---|
 | `src/template.html` | HTML shell with bundled inline mount targets |
 | `src/styles.css` | Candlelit desk, verdigris shop, menu modal, and mobile `100dvh` CSS |
+| `src/painted.css` | The painted look on top: colour bands, ink outlines, 2D shadows |
+| `src/art/` | The three painted pictures (desk wide, desk tall, vellum), embedded at build time |
+| `art-src/` | Blender scripts that render those pictures, and `to_webp.py` to shrink them |
 | `src/audio.js` | Sound effects and music (shared with The Scriptorium Vigil) |
 | `src/audio/` | Music loops, embedded at build time |
 | `src/scenes.js` | Home, win, lose and endless-end screens, the censer, and first-time tips |

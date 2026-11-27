@@ -1584,7 +1584,7 @@ const TileForge = (() => {
     const slotsHtml = S.line.map((t, i) => {
       const info = lightInfoFromLevel(lightLevels[i]);
       return `
-        <div class="vslot" style="--fd:-${((i * 0.53) % 1.3).toFixed(2)}s">
+        <div class="vslot" style="--fd:-${((i * 0.53) % 1.3).toFixed(2)}s;--d:${snuffed ? 0 : i - S.candleSlot}">
           ${renderCandleHead(i, S.candleSlot, lightLevels[i], snuffed, candleMoved)}
           <div class="vcell light-${info.level}" data-slot-idx="${i}">${t ? tileHtml(t, { fill: fillMap[i], neighborWild: !!neighborWildMap[i], draggable: canDrag }) : `<span class="pnum">${info.mult > 1 ? '×' + fmtC(info.mult) : ''}</span>`}</div>
         </div>
@@ -1630,10 +1630,10 @@ const TileForge = (() => {
       `
       : `
         <div class="actions">
-          <button class="btn cinnabar swap-btn" data-act="startSwap" ${S.swapsLeft <= 0 || noRackTiles || S.busy || S.broken ? 'disabled' : ''}>Swap (${S.swapsLeft})</button>
-          <button class="btn cinnabar" data-act="swapAll" ${S.swapsLeft <= 0 || noRackTiles || S.busy || S.broken ? 'disabled' : ''} title="Swap all tiles on your rack (tiles on the board stay put!)">${filledIdx.length ? `Swap Rack (${S.hand.length})` : 'Swap All'}</button>
-          <button class="btn wood" data-act="sort">Sort ${S.sortMode === 'az' ? 'A–Z' : 'Score'}</button>
-          <button class="btn wood" data-act="bag">Bag (${S.draw.length}/${S.bag.length})</button>
+          <button class="btn cinnabar swap-btn" data-act="startSwap" ${S.swapsLeft <= 0 || noRackTiles || S.busy || S.broken ? 'disabled' : ''}><span class="bl">Swap</span> <span class="bc">(${S.swapsLeft})</span></button>
+          <button class="btn cinnabar" data-act="swapAll" ${S.swapsLeft <= 0 || noRackTiles || S.busy || S.broken ? 'disabled' : ''} title="Swap all tiles on your rack (tiles on the board stay put!)">${filledIdx.length ? `<span class="bl">Swap Rack</span> <span class="bc">(${S.hand.length})</span>` : '<span class="bl">Swap All</span>'}</button>
+          <button class="btn wood" data-act="sort"><span class="bl">Sort</span> <span class="bc">${S.sortMode === 'az' ? 'A–Z' : 'Score'}</span></button>
+          <button class="btn wood" data-act="bag"><span class="bl">Bag</span> <span class="bc">(${S.draw.length}/${S.bag.length})</span></button>
           <button class="btn ${v.valid || v.empty ? 'lapis' : 'wood'} grow" data-act="inscribe" ${v.empty || !v.contiguous || S.busy || S.broken ? 'disabled' : ''}>
             Play Word${S.busy ? '' : v.valid ? ` <small>+${fmtC(sc.total)}</small>` : (!v.empty && v.contiguous ? ' <small>(for 0)</small>' : '')}
           </button>
@@ -1649,7 +1649,7 @@ const TileForge = (() => {
           <div class="angel-line">${ANGEL_SVG}<div class="judgement ${judge.cls}">${angelTextHtml}</div></div>
           <div class="verse-wrap">
             <button class="shift ${nudgeLeft ? 'nudge' : ''}" data-act="shift" data-arg="-1" ${!filledIdx.length || filledIdx[0] === 0 ? 'disabled' : ''} title="Shift word left">‹</button>
-            <div class="verse-line-wrap" style="overflow:hidden">
+            <div class="verse-line-wrap">
               <div class="candle-halo ${allBlazing ? 'all-lit' : ''}" style="left:${S.candleSlot * 20 - 7}%"></div>
               <div class="verse-line">${slotsHtml}</div>
             </div>
@@ -1764,9 +1764,16 @@ const TileForge = (() => {
       return p;
     };
     const strongStacks = [...allStacks].sort((a, b) => tilePower(b.tile) - tilePower(a.tile));
+    // Most: the letters you hold the most copies of first (six Es, then four As...). A letter's forged and
+    // plain stacks count together and stay side by side, forged first.
+    const letterTotal = new Map();
+    for (const st of allStacks) letterTotal.set(st.key, (letterTotal.get(st.key) || 0) + st.count);
+    const mostStacks = [...allStacks].sort((a, b) => letterTotal.get(b.key) - letterTotal.get(a.key) ||
+      stackKeySort(a.key).localeCompare(stackKeySort(b.key)) || (b.upgraded - a.upgraded) || b.count - a.count);
 
     let shownStacks;
     if (S.wbFilter === 'strong') shownStacks = strongStacks;
+    else if (S.wbFilter === 'most') shownStacks = mostStacks;
     else if (S.wbFilter === 'upgraded') shownStacks = upStacks;
     else if (S.wbFilter === 'combos') shownStacks = comboStacks;
     else if (S.wbFilter === 'vowels') shownStacks = vowelStacks;
@@ -1777,6 +1784,7 @@ const TileForge = (() => {
     const wbFiltersHtml = `
       <button class="wb-filter ${S.wbFilter === 'all' ? 'active' : ''}" data-act="wbFilter" data-arg="all">All</button>
       <button class="wb-filter ${S.wbFilter === 'strong' ? 'active' : ''}" data-act="wbFilter" data-arg="strong" data-tip-title="Strongest" data-tip-text="Your letters from strongest to weakest, counting their points and forges.">Strongest</button>
+      <button class="wb-filter ${S.wbFilter === 'most' ? 'active' : ''}" data-act="wbFilter" data-arg="most" data-tip-title="Most" data-tip-text="The letters you have the most copies of come first.">Most</button>
       <button class="wb-filter ${S.wbFilter === 'upgraded' ? 'active' : ''}" data-act="wbFilter" data-arg="upgraded">Forged</button>
       <button class="wb-filter ${S.wbFilter === 'vowels' ? 'active' : ''}" data-act="wbFilter" data-arg="vowels">Vowels</button>
       ${comboStacks.length ? `<button class="wb-filter ${S.wbFilter === 'combos' ? 'active' : ''}" data-act="wbFilter" data-arg="combos">Pairs</button>` : ''}
