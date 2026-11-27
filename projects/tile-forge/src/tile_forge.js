@@ -190,8 +190,12 @@ const TileForge = (() => {
         return { w, html: `<div class="tile-chips badge">${glyphHtml(top, { count: topN, cls })}${cols.length ? pipsHtml(cols, cls) : ''}</div>` };
       }
     }
-    // a lone wide tag (like ^1.25 on a small shop tile) stays a tag, at the small size
-    if (!cols.length) return { w: glyphW(top, 'tiny', topN), html: `<div class="tile-chips badge">${glyphHtml(top, { count: topN, cls: 'tiny' })}</div>` };
+    // a lone wide tag (like ^1.25 on a small shop tile) stays a tag, at the small size; if its count
+    // bubble would push it past the tile, the bubble goes (press and hold still says ×2)
+    if (!cols.length) {
+      const n = glyphW(top, 'tiny', topN) <= budget ? topN : 1;
+      return { w: glyphW(top, 'tiny', n), html: `<div class="tile-chips badge">${glyphHtml(top, { count: n, cls: 'tiny' })}</div>` };
+    }
     // a very wide tag with others: just the dots, one per forge (or the count), so the tile still says it's busy
     const all = [FORGE_COL[top.color] || '#3b2415'];
     for (let i = 1; i < topN; i++) all.push(all[0]);
@@ -230,12 +234,13 @@ const TileForge = (() => {
   const VOWEL_FAST_MIN_PLAYS = 20;
 
   const STAKES = [
-    { id: 'white',  icon: '⚪', name: 'White Stake',  short: 'White',  wordsPerStage: 4, swapsPerStage: 3, goalMult: 1,    noFuse: false, shopPriceAdd: 0, desc: 'Base rules: 4 Words, 3 Swaps, full Forge.' },
-    { id: 'red',    icon: '🔴', name: 'Red Stake',    short: 'Red',    wordsPerStage: 4, swapsPerStage: 2, goalMult: 1,    noFuse: false, shopPriceAdd: 0, desc: '-1 Swap per stage (2 Swaps instead of 3).' },
-    { id: 'green',  icon: '🟢', name: 'Green Stake',  short: 'Green',  wordsPerStage: 4, swapsPerStage: 2, goalMult: 1.35, noFuse: false, shopPriceAdd: 0, desc: 'Includes Red · Goals scale ×1.35 faster.' },
-    { id: 'blue',   icon: '🔵', name: 'Blue Stake',   short: 'Blue',   wordsPerStage: 4, swapsPerStage: 2, goalMult: 1.35, noFuse: true,  shopPriceAdd: 0, desc: 'Includes Green · No Fusing (🔗 Fuse 2 Tiles locked).' },
-    { id: 'purple', icon: '🟣', name: 'Purple Stake', short: 'Purple', wordsPerStage: 3, swapsPerStage: 2, goalMult: 1.35, noFuse: true,  shopPriceAdd: 0, desc: 'Includes Blue · -1 Word per stage (only 3 Words!).' },
-    { id: 'gold',   icon: '🟡', name: 'Gold Stake',   short: 'Gold',   wordsPerStage: 3, swapsPerStage: 2, goalMult: 1.75, noFuse: true,  shopPriceAdd: 2, desc: 'Includes Purple · All Shop prices +$2 & Goals ×1.75.' }
+    // The difficulty ladder, named for religious orders from the gentlest Rule to the strictest. Ids stay as they were so saved wins carry over.
+    { id: 'white',  icon: '⚪', name: 'Benedictine Order', short: 'Benedictine', wordsPerStage: 4, swapsPerStage: 3, goalMult: 1,    noFuse: false, shopPriceAdd: 0, desc: 'The moderate Rule: 4 Words, 3 Swaps, full Forge.' },
+    { id: 'red',    icon: '🔴', name: 'Franciscan Order',  short: 'Franciscan',  wordsPerStage: 4, swapsPerStage: 2, goalMult: 1,    noFuse: false, shopPriceAdd: 0, desc: 'Poverty: -1 Swap per stage (2 Swaps instead of 3).' },
+    { id: 'green',  icon: '🟢', name: 'Dominican Order',   short: 'Dominican',   wordsPerStage: 4, swapsPerStage: 2, goalMult: 1.35, noFuse: false, shopPriceAdd: 0, desc: 'Includes Franciscan · Study: Goals scale ×1.35 faster.' },
+    { id: 'blue',   icon: '🔵', name: 'Cistercian Order',  short: 'Cistercian',  wordsPerStage: 4, swapsPerStage: 2, goalMult: 1.35, noFuse: true,  shopPriceAdd: 0, desc: 'Includes Dominican · Simplicity: no Fusing (🔗 Fuse 2 Tiles locked).' },
+    { id: 'purple', icon: '🟣', name: 'Trappist Order',    short: 'Trappist',    wordsPerStage: 3, swapsPerStage: 2, goalMult: 1.35, noFuse: true,  shopPriceAdd: 0, desc: 'Includes Cistercian · Silence: -1 Word per stage (only 3 Words!).' },
+    { id: 'gold',   icon: '🟡', name: 'Carthusian Order',  short: 'Carthusian',  wordsPerStage: 3, swapsPerStage: 2, goalMult: 1.75, noFuse: true,  shopPriceAdd: 2, desc: 'Includes Trappist · The strictest: Shop prices +$2 & Goals ×1.75.' }
   ];
   const STAKE_MAP = Object.fromEntries(STAKES.map(s => [s.id, s]));
 
@@ -981,7 +986,7 @@ const TileForge = (() => {
     }
 
     if (S.shopMode === 'fuse') {
-      if (getStake().noFuse) { SFX.buzz(); showToast('Fuse 2 Tiles is locked on this Stake!'); return; }
+      if (getStake().noFuse) { SFX.buzz(); showToast('Fuse 2 Tiles is locked in this Order!'); return; }
       if (S.gold < fuseCost) { SFX.buzz(); showToast(`Need $${fuseCost}!`); return; }
       if (!S.fuseFirstUid) {
         if (tile.wild || tile.letter.length >= 3) {
@@ -1365,7 +1370,7 @@ const TileForge = (() => {
   function homeData() {
     const st = getStake(), b = readBest();
     return {
-      stake: `${st.icon} ${esc(st.short)} Stake`,
+      stake: `${st.icon} ${esc(st.name)}`,
       stats: b.score ? `Best word: “${esc(b.word || '')}” ${fmtC(b.score)} · Highest: Terrace ${b.terrace || 1}` : ''
     };
   }
@@ -1443,7 +1448,7 @@ const TileForge = (() => {
       'How to Play Tile Forge',
       `<p><b>✨ Everything Stacks:</b> Mix &amp; match <b>+Score</b>, <b>Multiply</b>, <b>Replay</b>, <b>Light</b> &amp; neighbors on any normal letter! <b>Wild ?</b> tiles are capped at <b>2 per run</b>, stay clean (no upgrades or replays), and <b>Clones</b> create clean un-modded copies.</p>
        <p><b>🅰️ Letter-Wide &amp; Thinning:</b> Upgrades apply to <b>ALL copies</b> of a letter! Use <b>🔥 Burn Tile ($${burnCost})</b> to cut unwanted letters, <b>🔗 Fuse 2 Tiles ($${fuseCost})</b> to build digraphs/trigraphs, or <b>📑 Clone +1 ($${cloneCost})</b>.</p>
-       <p><b>🏔️ Run Structure, Scale &amp; Anti-Spam Audits:</b> Ascend <b>7 Terraces</b> across <b>15 Audits</b>. Repeating the same word (3×) or tile (7×) schedules a targeted <b>Anti-Spam Audit</b> banning that word or glyph! Open <b>⚙ Menu</b> to tune <b>Goal Scale (10%–200%)</b> or play <b>Stakes</b>.</p>
+       <p><b>🏔️ Run Structure, Scale &amp; Anti-Spam Audits:</b> Ascend <b>7 Terraces</b> across <b>15 Audits</b>. Repeating the same word (3×) or tile (7×) schedules a targeted <b>Anti-Spam Audit</b> banning that word or glyph! Open <b>⚙ Menu</b> to tune <b>Goal Scale (10%–200%)</b> or join a stricter <b>Religious Order</b>.</p>
        <p><b>🕯️ Candlelight &amp; Controls:</b> Tap or drag letters onto the 5 slots (shift with <b>‹ ›</b> onto <b>BRIGHT ×3</b> / <b>WARM ×2</b>) and tap <b>WORD SCORE</b> to play! Directional <b>◀︎ / ▶︎</b> triangles show which neighbor gets buffed.</p>`,
       `<button class="btn gold" data-act="closeModal">Got It</button>`
     );
@@ -1512,20 +1517,7 @@ const TileForge = (() => {
       `;
     }).join('');
 
-    const angelOpts = ANGEL_MODES.map(m => `
-        <button class="angel-opt ${m.id === angelMode ? 'active' : ''}" data-act="setAngel" data-arg="${m.id}">
-          <span class="angel-opt-stage">${angelHtml(m.id, true)}</span>
-          <b>${esc(m.name)}</b><small>${esc(m.desc)}</small>
-        </button>`).join('');
     const bodyHtml = `
-      <div class="menu-section angel-pick">
-        <div class="menu-sec-head">
-          <b>Guardian Angel</b>
-          <span class="menu-hint">Pick how it moves. All four are moving here side by side.</span>
-        </div>
-        <div class="angel-opts">${angelOpts}</div>
-      </div>
-
       <div class="menu-section">
         <div class="scale-head">
           <div>
@@ -1547,8 +1539,8 @@ const TileForge = (() => {
 
       <div class="menu-section">
         <div class="menu-sec-head">
-          <b>Stakes (Cumulative Difficulty)</b>
-          <span class="menu-hint">${changedStake ? `Click button below to start ${esc(picked.name)}` : 'Pick a Stake to start a new run with'}</span>
+          <b>Religious Orders (each adds to the last)</b>
+          <span class="menu-hint">${changedStake ? `Click button below to start ${esc(picked.name)}` : 'Pick an Order to start a new run with'}</span>
         </div>
         <div class="stakes-grid">${stakesHtml}</div>
       </div>
@@ -1581,7 +1573,7 @@ const TileForge = (() => {
     nav.innerHTML = `
       <div class="nav-brand">
         <span class="nav-title">Tile Forge</span>
-        <button class="stake-pill stake-${st.id}" data-act="menu" title="Open Menu: Goal Scale &amp; Stakes" aria-label="${esc(st.short)} Stake: open the Menu">${st.icon} ${esc(st.short)}<span class="nl"> Stake</span>${S.goalScalePct !== 100 ? ` · ${S.goalScalePct}%` : ''}</button>
+        <button class="stake-pill stake-${st.id}" data-act="menu" title="Open Menu: Goal Scale &amp; Orders" aria-label="${esc(st.name)}: open the Menu">${st.icon} ${esc(st.short)}<span class="nl"> Order</span>${S.goalScalePct !== 100 ? ` · ${S.goalScalePct}%` : ''}</button>
       </div>
       <div class="nav-tools">
         <button class="btn mini gold" data-act="menu" title="Menu" aria-label="Menu"><span class="ni" aria-hidden="true">⚙</span><span class="nl"> Menu</span></button>
@@ -1927,7 +1919,7 @@ const TileForge = (() => {
               <div class="wb-crafts">
                 <button class="craft ${S.shopMode === 'burn' ? 'on' : ''}" data-act="startBurn" ${S.gold < burnCost || S.bag.length <= MIN_BAG_SIZE ? 'disabled' : ''} data-tip-title="Burn" data-tip-text="Remove one copy of a letter from your bag, so your good letters come up more often. Your bag keeps at least ${MIN_BAG_SIZE} tiles.">🔥 <i class="coin" aria-hidden="true">$</i><b>${burnCost}</b></button>
                 <button class="craft ${S.shopMode === 'clone' ? 'on' : ''}" data-act="startClone" ${S.gold < cloneCost ? 'disabled' : ''} data-tip-title="Clone" data-tip-text="Add a copy of a letter to your bag, forges and all.">⧉ <i class="coin" aria-hidden="true">$</i><b>${cloneCost}</b></button>
-                <button class="craft ${S.shopMode === 'fuse' ? 'on' : ''}" data-act="startFuse" ${noFuse || S.gold < fuseCost ? 'disabled' : ''} data-tip-title="Fuse" data-tip-text="${noFuse ? 'Locked on this Stake.' : 'Join two letters into one tile (like T + H = TH). Points and forges add together.'}">🔗 ${noFuse ? '<b>🔒</b>' : `<i class="coin" aria-hidden="true">$</i><b>${fuseCost}</b>`}</button>
+                <button class="craft ${S.shopMode === 'fuse' ? 'on' : ''}" data-act="startFuse" ${noFuse || S.gold < fuseCost ? 'disabled' : ''} data-tip-title="Fuse" data-tip-text="${noFuse ? 'Locked in this Order.' : 'Join two letters into one tile (like T + H = TH). Points and forges add together.'}">🔗 ${noFuse ? '<b>🔒</b>' : `<i class="coin" aria-hidden="true">$</i><b>${fuseCost}</b>`}</button>
               </div>
             </div>
             <div class="wb-tiles">
@@ -2031,7 +2023,7 @@ const TileForge = (() => {
         if (!seen('audit')) coachMark('audit');
       }
       if (!seen('more') && seen('hold') && seen('forge')) return { id: 'more', sel: '#ws-nav [data-act="rules"]', gotIt: true,
-        text: 'That’s the basics. Rules has the rest, and the Menu has sound, difficulty and Stakes.' };
+        text: 'That’s the basics. Rules has the rest, and the Menu has sound, difficulty and Religious Orders.' };
       return null;
     }
     if (S.phase === 'shop') {
@@ -2047,7 +2039,7 @@ const TileForge = (() => {
       if (!seen('audit') && audit) return { id: 'audit', sel: '.audit-banner', gotIt: true,
         text: 'An Audit is coming: a boss round with a special rule. ' + auditHelp(nextAudit) };
       if (!seen('more') && seen('hold') && seen('forge')) return { id: 'more', sel: '#ws-nav [data-act="rules"]', gotIt: true,
-        text: 'That’s the basics. Rules has the rest, and the Menu has sound, difficulty and Stakes.' };
+        text: 'That’s the basics. Rules has the rest, and the Menu has sound, difficulty and Religious Orders.' };
     }
     return null;
   }
@@ -2074,11 +2066,6 @@ const TileForge = (() => {
       case 'closeModal': closeModal(); pendingComboCtx = null; return;
       case 'rules': openRules(); return;
       case 'menu': openMenu(); return;
-      case 'setAngel':
-        setAngelMode(arg);
-        document.querySelectorAll('.angel-opt').forEach(b => b.classList.toggle('active', b.dataset.arg === arg));
-        SFX.pick();
-        return;
       case 'setGoalScale': setGoalScale(+arg); SFX.pick(); return;
       case 'pickStake': openMenu(arg); SFX.pick(); return;
       case 'applyStake': {
@@ -2222,7 +2209,7 @@ const TileForge = (() => {
       case 'startFuse': {
         if (getStake().noFuse) {
           SFX.buzz();
-          showToast('Fuse 2 Tiles is locked on this Stake!');
+          showToast('Fuse 2 Tiles is locked in this Order!');
           return;
         }
         if (S.shopMode === 'fuse') {
@@ -2358,13 +2345,14 @@ const TileForge = (() => {
       const tileEl = e.target.closest('[data-tf-tile]');
       if (tileEl) {
         const uid = +tileEl.dataset.tfTile;
+        // in the bag, a tap shows what the tile has, like a press and hold on the rack
+        if (tileEl.closest('.bag-grid')) { showTipFor(tileEl); SFX.pick(); return; }
         if (S.phase === 'shop') {
           if (S.shopMode === 'card' && S.shopSel !== null) applyCardToTile(S.shopSel, uid);
           else if (S.shopMode === 'burn' || S.shopMode === 'clone' || S.shopMode === 'fuse') applyWorkbenchCraft(uid);
           else { showTipFor(tileEl); SFX.pick(); }
           return;
         }
-        if (tileEl.closest('.bag-grid')) return;
         placeOrReturnTile(uid);
       }
     });
@@ -2510,6 +2498,36 @@ const TileForge = (() => {
     };
     app.addEventListener('pointerup', e => finishTouchDrag(e, true));
     app.addEventListener('pointercancel', e => finishTouchDrag(e, false));
+
+    // In the bag, a press and hold shows the tooltip too (a tap does as well, in the click handler).
+    // Scrolling the sheet or lifting early cancels it.
+    let bagHold = null;
+    const endBagHold = () => { if (bagHold) { clearTimeout(bagHold.timer); bagHold = null; } };
+    app.addEventListener('pointerdown', e => {
+      if (e.pointerType === 'mouse') return;
+      const tileEl = e.target.closest('.bag-grid [data-tf-tile]');
+      if (!tileEl) return;
+      endBagHold();
+      bagHold = {
+        pointerId: e.pointerId, x: e.clientX, y: e.clientY,
+        timer: setTimeout(() => {
+          if (!bagHold) return;
+          showTipFor(tileEl);
+          try { navigator.vibrate && navigator.vibrate(12); } catch (err) {}
+          // the finger lifts after this; don't let that tap play the pick sound again
+          suppressNextClick = true;
+          setTimeout(() => { suppressNextClick = false; }, 400);
+          bagHold = null;
+        }, 430)
+      };
+    });
+    app.addEventListener('pointermove', e => {
+      if (bagHold && e.pointerId === bagHold.pointerId && Math.hypot(e.clientX - bagHold.x, e.clientY - bagHold.y) >= 10) endBagHold();
+    });
+    app.addEventListener('pointerup', endBagHold);
+    app.addEventListener('pointercancel', endBagHold);
+    // the tooltip sits still on screen, so it goes away when the bag scrolls under it
+    app.addEventListener('scroll', e => { if (e.target.closest && e.target.closest('#modal')) hideTip(); }, true);
 
     window.addEventListener('pointerdown', e => { lastPtr = e.pointerType || 'mouse'; }, { capture: true });
     // no phone context menu on a long-pressed tile

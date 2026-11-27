@@ -4,17 +4,49 @@
    ===================================================================== */
 
 // ---- Incense: smoke, embers, and a censer that swings across the screen ----
-const CENSER_SVG = `<svg viewBox="0 0 70 150" width="70" height="150" aria-hidden="true">
-  <defs><linearGradient id="tfcg" x1="0" x2="1"><stop offset="0" stop-color="#7a5512"/><stop offset=".45" stop-color="#f4d886"/><stop offset="1" stop-color="#8a6414"/></linearGradient></defs>
-  <g stroke="#c99a3a" stroke-width="1.6" stroke-dasharray="3 2"><line x1="35" y1="0" x2="14" y2="92"/><line x1="35" y1="0" x2="35" y2="80"/><line x1="35" y1="0" x2="56" y2="92"/></g>
-  <circle cx="35" cy="3" r="4" fill="url(#tfcg)"/>
-  <path d="M35 76 l4 8 h-8 z" fill="url(#tfcg)"/>
-  <path d="M12 104 Q12 84 35 84 Q58 84 58 104 Z" fill="url(#tfcg)" stroke="#5a3d0c" stroke-width="1.2"/>
-  <g fill="#3a2406"><circle cx="24" cy="97" r="2"/><circle cx="35" cy="93" r="2"/><circle cx="46" cy="97" r="2"/><path d="M33 99 h4 v4 h-4z"/></g>
-  <rect x="9" y="103" width="52" height="5" rx="2" fill="#a37a1e"/>
-  <path d="M11 108 Q14 128 35 128 Q56 128 59 108 Z" fill="url(#tfcg)" stroke="#5a3d0c" stroke-width="1.2"/>
-  <path d="M27 128 h16 l3 9 h-22 z" fill="url(#tfcg)" stroke="#5a3d0c" stroke-width="1"/>
-  <circle cx="35" cy="116" r="4" fill="#b5301c" stroke="#5a1208" stroke-width=".8"/></svg>`;
+// The censer is painted like the rest of the game: flat gold bands, a sepia ink outline and a flat
+// shadow. It is a round globe on three chains, with four little bells that hang down, lag the swing
+// and jingle. Drawn in a 68 × 186 box; the chains hang from (34, 4).
+const CENSER_INK = '#2a1609';
+const CENSER_GOLD = { hi: '#fae296', base: '#deac42', dark: '#96681a' };
+// One painted part: the shape in gold with an ink ring round it, a darker band (right side or bottom)
+// and a light stripe, both kept inside the shape.
+function censerPart(id, shape, [x, y, w, h], { split = 'right', light = true, ow = 2 } = {}) {
+  const band = split === 'right'
+    ? `<rect x="${x + w * 0.62}" y="${y}" width="${w * 0.38}" height="${h}" fill="${CENSER_GOLD.dark}"/>`
+    : `<rect x="${x}" y="${y + h * 0.55}" width="${w}" height="${h * 0.45}" fill="${CENSER_GOLD.dark}"/>`;
+  const stripe = light ? `<rect x="${x + w * 0.16}" y="${y}" width="${w * 0.14}" height="${h}" fill="${CENSER_GOLD.hi}"/>` : '';
+  return `<clipPath id="tfc-${id}">${shape('')}</clipPath>` +
+    shape(`fill="${CENSER_GOLD.base}" stroke="${CENSER_INK}" stroke-width="${ow * 2}" stroke-linejoin="round" paint-order="stroke"`) +
+    `<g clip-path="url(#tfc-${id})">${band}${stripe}</g>`;
+}
+const CENSER_SVG = (() => {
+  const P = [34, 4], ends = [[8, 153], [34, 121], [60, 153]];
+  const chains = ends.map(([x, y]) =>
+    `<line x1="${P[0]}" y1="${P[1]}" x2="${x}" y2="${y}" stroke="${CENSER_INK}" stroke-width="3.2" stroke-linecap="round"/>` +
+    `<line x1="${P[0]}" y1="${P[1]}" x2="${x}" y2="${y}" stroke="${CENSER_GOLD.hi}" stroke-width="1.6" stroke-dasharray="2.4 1.8"/>`).join('');
+  // a bell, drawn from the point it hangs by; censerSweep turns each one so it hangs down
+  const bell = (i, side, k, f) => {
+    const [ex, ey] = ends[side < 0 ? 0 : 2], ax = P[0] + (ex - P[0]) * f, ay = P[1] + (ey - P[1]) * f;
+    return `<g transform="translate(${ax.toFixed(2)} ${ay.toFixed(2)})"><g class="cbell" data-k="${k}" data-side="${side}">` +
+      `<rect x="-1.4" y="-0.9" width="2.8" height="2.4" fill="${CENSER_INK}"/>` +
+      censerPart('b' + i, a => `<path d="M-4.8 5.25 A4.8 4.25 0 0 1 4.8 5.25 L6 11.5 L-6 11.5 Z" ${a}/>`, [-6, 1, 12, 10.5], { light: false, ow: 1.1 }) +
+      `<circle cx="0" cy="12.9" r="1.8" fill="${CENSER_INK}"/><circle cx="0" cy="12.9" r="1" fill="${CENSER_GOLD.hi}"/></g></g>`;
+  };
+  const bells = [bell(0, -1, 0, 0.42), bell(1, -1, 1, 0.72), bell(2, 1, 0, 0.42), bell(3, 1, 1, 0.72)].join('');
+  const hole = ([x, y]) => `<circle cx="${x}" cy="${y}" r="3.5" fill="${CENSER_INK}"/><circle cx="${x}" cy="${y}" r="2.4" fill="#e65a1e"/>` +
+    `<circle cx="${x - 0.36}" cy="${y + 0.36}" r="1.32" fill="#ffd66e"/>`;
+  const jewel = (x, c) => `<circle cx="${x}" cy="161" r="3.6" fill="${CENSER_INK}"/><circle cx="${x}" cy="161" r="2.5" fill="${c}"/>`;
+  return `<svg viewBox="0 0 68 186" width="62" height="170" overflow="visible" aria-hidden="true">${chains}` +
+    `<circle cx="34" cy="4" r="5" fill="${CENSER_INK}"/><circle cx="34" cy="4" r="3.2" fill="${CENSER_GOLD.hi}"/>${bells}` +
+    censerPart('knob', a => `<ellipse cx="34" cy="119.5" rx="4" ry="4.5" ${a}/>`, [30, 115, 8, 9], { light: false }) +
+    censerPart('lid', a => `<path d="M8 149 A26 26 0 0 1 60 149 Z" ${a}/>`, [8, 123, 52, 26]) +
+    [[19, 143], [29, 136], [39, 136], [49, 143]].map(hole).join('') +
+    censerPart('bowl', a => `<path d="M60 149 A26 26 0 0 1 8 149 Z" ${a}/>`, [8, 149, 52, 26]) +
+    censerPart('rim', a => `<rect x="6" y="146" width="56" height="7" rx="3" ${a}/>`, [6, 146, 56, 7], { split: 'bottom' }) +
+    censerPart('foot', a => `<path d="M28 173 L40 173 L45 183 L23 183 Z" ${a}/>`, [23, 173, 22, 10], { light: false }) +
+    jewel(22, '#2e846c') + jewel(34, '#b5301c') + jewel(46, '#2e846c') + `</svg>`;
+})();
 
 function smoke(x, y, n = 6, spread = 60) {
   for (let i = 0; i < n; i++) {
@@ -36,15 +68,60 @@ function embers(x, y, n = 14, spread = 120) {
       { duration: dur, delay: Math.random() * 250, easing: 'cubic-bezier(.2,.6,.4,1)', fill: 'backwards' }).onfinish = () => e.remove();
   }
 }
+// The censer's incense: small painted beads of smoke that climb in a twisting curl, and a few embers.
+function incenseBead(x, y) {
+  const d = document.createElement('div'); d.className = 'incense';
+  d.style.left = x + 'px'; d.style.top = y + 'px';
+  document.body.appendChild(d);
+  const ph = Math.random() * Math.PI * 2, life = 1.6, frames = [];
+  for (let i = 0; i <= 8; i++) {
+    const a = i / 8, age = a * life;
+    const r = (2 + 5.5 * Math.sin(a * Math.PI)) * (a < 0.8 ? 1 : (1 - a) / 0.2);
+    frames.push({ transform: `translate(${(13 * a * Math.sin(age * 7 + ph)).toFixed(1)}px,${(-84 * a).toFixed(1)}px) scale(${(r / 7.5).toFixed(3)})` });
+  }
+  d.animate(frames, { duration: life * 1000, easing: 'linear' }).onfinish = () => d.remove();
+}
+function incenseEmber(x, y) {
+  const e = document.createElement('div'); e.className = 'incense-ember';
+  e.style.left = x + 'px'; e.style.top = y + 'px';
+  document.body.appendChild(e);
+  const vx = Math.random() * 2 - 1, vy = Math.random() * 2 - 1, frames = [];
+  for (let i = 0; i <= 6; i++) {
+    const a = i / 6;
+    frames.push({ transform: `translate(${(vx * 26 * a).toFixed(1)}px,${(-(18 + vy * 10) * a + 30 * a * a).toFixed(1)}px) scale(${(1 - 0.6 * a).toFixed(2)})`,
+      background: a < 0.5 ? '#ffd66e' : '#ff9632' });
+  }
+  e.animate(frames, { duration: 900, easing: 'linear' }).onfinish = () => e.remove();
+}
 // A thurible swings across the screen trailing incense: one word cleared the whole goal.
 function censerSweep() {
   const W = window.innerWidth, H = window.innerHeight;
   const el = document.createElement('div'); el.className = 'censer'; el.innerHTML = CENSER_SVG; document.body.appendChild(el);
-  const pivotY = H * 0.22, L = 118, dur = 2800, t0 = performance.now(); let last = 0;
+  const bells = [...el.querySelectorAll('.cbell')];
+  // the chains hang from (31, 3.6) on screen; the smoke leaves the top of the globe, 108.5 px below
+  const OX = 31, pivotY = H * 0.22, L = 108.5, dur = 2800, t0 = performance.now();
+  const swing = (k) => Math.sin(k * Math.PI * 5) * 0.55;
+  let last = 0;
   const step = (t) => {
-    const k = Math.min(1, (t - t0) / dur), x = -60 + (W + 120) * k, th = Math.sin(k * Math.PI * 5) * 0.55;
-    el.style.transform = `translate(${x - 35}px,${pivotY}px) rotate(${th}rad)`;
-    if (t - last > 55) { last = t; const bx = x - L * Math.sin(th), by = pivotY + L * Math.cos(th); smoke(bx, by - 6, 1, 8); if (Math.random() < 0.35) embers(bx, by, 1, 6); }
+    const k = Math.min(1, (t - t0) / dur), x = -60 + (W + 120) * k, th = swing(k);
+    const vel = (swing(k + 0.004) - swing(k - 0.004)) / (0.008 * dur / 1000);   // radians a second
+    el.style.transform = `translate(${x - OX}px,${pivotY}px) rotate(${th}rad)`;
+    // the flat shadow stays down and to the right however the censer turns
+    const dx = 7 * Math.cos(th) + 9 * Math.sin(th), dy = -7 * Math.sin(th) + 9 * Math.cos(th);
+    el.style.filter = `drop-shadow(${dx.toFixed(1)}px ${dy.toFixed(1)}px 0 rgba(42,22,9,.5))`;
+    // each bell hangs straight down, lags the swing a little and jingles
+    const sec = (t - t0) / 1000;
+    bells.forEach(b => {
+      const bk = +b.dataset.k, side = +b.dataset.side;
+      const ang = -th * 180 / Math.PI + vel * 180 / Math.PI * (0.12 + 0.05 * bk) - 7 * Math.sin(sec * 11 + bk * 1.7 + side);
+      b.setAttribute('transform', `rotate(${ang.toFixed(1)})`);
+    });
+    if (t - last > 70) {
+      last = t;
+      const bx = x - L * Math.sin(th), by = pivotY + L * Math.cos(th);
+      incenseBead(bx, by);
+      if (Math.random() < 0.25) incenseEmber(bx, by);
+    }
     if (k < 1) requestAnimationFrame(step); else el.remove();
   };
   requestAnimationFrame(step);

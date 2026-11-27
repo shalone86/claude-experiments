@@ -495,62 +495,31 @@ html, body { background: #1a0f07; }
 }
 
 /* ---------------------------------------------------------------------
-   The guardian angel: a ball of light, always alive. Four ways to move, picked in the Menu
-   (data-orb on .orb): Drift, Fairy, Wisp and Curious. .orb stays put and holds the sparkles,
-   .orb-body floats, and the ball itself (.angel) breathes and, for Curious, darts.
-   Every loop is a whole fraction of 12 s, so the float keeps its rhythm when the page redraws.
+   The guardian angel: a ball of light that bobs like a fairy, with tiny sparkles
+   popping off at random. .angel-orb stays put and holds the sparkles, .orb-body bobs, and
+   the ball itself (.angel) breathes. The loops divide 12 s, so the bob keeps its
+   rhythm when the page redraws.
    --------------------------------------------------------------------- */
-.orb { position: relative; display: inline-block; flex: none; line-height: 0; vertical-align: middle; }
-.orb-body { display: block; line-height: 0; }
-.angel { animation: orbGlow 3s ease-in-out infinite; transition: translate .34s cubic-bezier(.2, .9, .3, 1.25); }
+.angel-orb { position: relative; display: inline-block; flex: none; line-height: 0; vertical-align: middle; }
+.orb-body { display: block; line-height: 0; animation: orbBobFairy 3s ease-in-out infinite; }
+.angel { animation: orbGlow 3s ease-in-out infinite; }
 @keyframes orbGlow {
   0%, 100% { filter: drop-shadow(0 0 2px rgba(255, 205, 100, 0.55)); }
   50%      { filter: drop-shadow(0 0 7px rgba(255, 220, 130, 0.95)); }
 }
 .angel-line { overflow: visible; }
 .scene .angel-big { animation: none; }
-.scene .angel-big .orb, .scene .angel-big .orb-body { width: 100%; height: 100%; }
-
-/* Drift: a slow float and a soft glow */
-.orb[data-orb="drift"] .orb-body { animation: orbBob 4s ease-in-out infinite; }
-/* Fairy: a quicker, lighter bob; sparkles pop off at random and rise */
-.orb[data-orb="fairy"] .orb-body { animation: orbBobFairy 3s ease-in-out infinite; }
-/* Wisp: a lazy figure-eight, sparkles left behind as a trail */
-.orb[data-orb="wisp"] .orb-body { animation: orbWisp 6s linear infinite; }
-.angel-line .orb[data-orb="wisp"] { margin: 0 6px; }
-/* Curious: a small hover; now and then it darts out to peek and zips back */
-.orb[data-orb="curious"] .orb-body { animation: orbBob 4s ease-in-out infinite; }
-.orb[data-orb="curious"] .angel { animation-duration: 2s; }
+.scene .angel-big .angel-orb, .scene .angel-big .orb-body { width: 100%; height: 100%; }
 .scene.lose .orb-body { animation: none; }
 
-@keyframes orbBob { 0%, 100% { translate: 0 0; } 50% { translate: 0 -14%; } }
 @keyframes orbBobFairy {
   0%, 100% { translate: 0 0; }
   25% { translate: 4% -14%; }
   50% { translate: 0 -20%; }
   75% { translate: -4% -9%; }
 }
-@keyframes orbWisp {
-  0.00% { translate: 0.0% -10.0%; }
-  6.25% { translate: 17.6% -0.1%; }
-  12.50% { translate: 32.5% 4.0%; }
-  18.75% { translate: 42.5% -0.1%; }
-  25.00% { translate: 46.0% -10.0%; }
-  31.25% { translate: 42.5% -19.9%; }
-  37.50% { translate: 32.5% -24.0%; }
-  43.75% { translate: 17.6% -19.9%; }
-  50.00% { translate: 0.0% -10.0%; }
-  56.25% { translate: -17.6% -0.1%; }
-  62.50% { translate: -32.5% 4.0%; }
-  68.75% { translate: -42.5% -0.1%; }
-  75.00% { translate: -46.0% -10.0%; }
-  81.25% { translate: -42.5% -19.9%; }
-  87.50% { translate: -32.5% -24.0%; }
-  93.75% { translate: -17.6% -19.9%; }
-  100.00% { translate: -0.0% -10.0%; }
-}
 
-/* a sparkle: a tiny four-point star of light */
+/* a sparkle: a tiny four-point star of light that rises and fades */
 .spark {
   position: absolute;
   pointer-events: none;
@@ -559,43 +528,13 @@ html, body { background: #1a0f07; }
   animation: sparkRise 1s ease-out forwards;
   z-index: 2;
 }
-.spark.trail { background: #ffe39a; animation-name: sparkTrail; }
-.spark.burst { animation-name: sparkBurst; }
 @keyframes sparkRise {
   0%   { opacity: 0; transform: scale(.2) rotate(0deg); }
   25%  { opacity: 1; transform: scale(1) rotate(25deg); }
   100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(.3) rotate(70deg); }
 }
-@keyframes sparkTrail {
-  0%   { opacity: .95; transform: scale(.9); }
-  100% { opacity: 0; transform: translate(0, var(--dy)) scale(.2) rotate(45deg); }
-}
-@keyframes sparkBurst {
-  0%   { opacity: 1; transform: scale(.4); }
-  30%  { opacity: 1; transform: translate(calc(var(--dx) * .6), calc(var(--dy) * .6)) scale(1.1) rotate(30deg); }
-  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(.2) rotate(80deg); }
-}
-
-/* the Menu's four choices: each ball moves on a small dark stage so its glow shows */
-.angel-opts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-@media (max-width: 520px) { .angel-opts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-.angel-opt {
-  display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center;
-  padding: 8px 6px 9px; border-radius: 10px; cursor: pointer; font: inherit; color: var(--iron);
-  background: linear-gradient(180deg, rgba(255, 250, 232, .7) 0 50%, rgba(240, 225, 190, .7) 50%);
-  border: 2px solid rgba(42, 22, 9, .55); box-shadow: 0 3px 0 rgba(42, 22, 9, .55);
-}
-.angel-opt.active { border-color: var(--ink); box-shadow: 0 3px 0 var(--ink), 0 0 0 3px rgba(211, 162, 59, .75); background: linear-gradient(180deg, #fff6d8 0 50%, #f2d98f 50%); }
-.angel-opt-stage {
-  width: 100%; height: 76px; display: flex; align-items: center; justify-content: center; margin-bottom: 3px;
-  border-radius: 8px; border: 1.5px solid var(--ink); overflow: hidden;
-  background: linear-gradient(180deg, #2c1a0d 0 50%, #22140a 50%);
-}
-.angel-opt-stage .angel { width: 30px; height: 30px; }
-.angel-opt b { font-family: 'Cinzel', serif; font-weight: 900; font-size: 13px; color: var(--cinnabar-deep); }
-.angel-opt small { font-size: 11.5px; line-height: 1.25; color: var(--iron-2); }
 
 @media (prefers-reduced-motion: reduce) {
-  .angel, .orb .orb-body { animation: none !important; }
+  .angel, .angel-orb .orb-body { animation: none !important; }
   .spark { display: none; }
 }

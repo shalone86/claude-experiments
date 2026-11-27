@@ -66,24 +66,26 @@ it glow warm (×2). Empty slots show their multiplier, and every flame flickers 
   **lose** (The Forge Goes Cold) and **endless end** (The Climb Ends) screens, in the style of
   *The Scriptorium Vigil*.
 - **One-word clears:** when a single word covers the whole goal, the choir swells and a censer swings
-  across the screen. Ordinary clears just chime.
+  across the screen. Ordinary clears just chime. The censer is painted like the rest of the game (flat
+  gold, ink outline, flat shadow): a round globe whose four little bells hang down and jingle as it
+  swings, trailing round beads of smoke and a few embers.
 - **Score smoke:** smoke rises behind a word that passes the goal, higher at 10×, 100× and 1000× over.
   Smoke over the whole screen, the glitch and the white-out come only with an infinite score.
 - **Your guardian angel** is a glowing ball of light (no figure), on the page and on every screen.
-  It moves one of four ways, picked in **Menu → Guardian Angel** (saved on the device): **Drift**
-  (a slow float), **Fairy** (bobs and sheds tiny sparkles), **Wisp** (a lazy figure-eight with a
-  sparkle trail) or **Curious** (hovers, then darts off to peek and zips back). No motion and no
-  sparkles when the device asks for reduced motion.
+  It bobs like a fairy and sheds tiny sparkles now and then. No motion and no sparkles when the
+  device asks for reduced motion.
 - **Busy tiles:** each tile shows one small badge, never wider than the tile: its strongest forge as a
   tag, then a dot for each other forge in that forge's colour (past three, `+N`). The letter never moves.
   Press and hold the tile for the full list. The shop's letter grid still shows a forge bar past three.
+  On a small phone tile, a lone tag drops its count bubble if it wouldn't fit.
 - **Bought cards** leave a dark, empty slot in the shop.
 - **Phones:** the ledger page shrinks its candles and writing line when the screen is short (or an
   Audit banner takes room), so the score line never spills under the rack. In play the Audit banner
   shows just the rule, since the plate above already names the Audit. The top bar is one row: the
-  title, the stake, and Menu (⚙), New Run (↺) and Rules (?) as square icon buttons. The shop's header
+  title, the religious order, and Menu (⚙), New Run (↺) and Rules (?) as square icon buttons. The shop's header
   shows the next goal, the next round's Words and Swaps, and your gold (the top bar already says Tile Forge).
-- **Seeing a tile's forges:** hover it (desktop) or press and hold it (phone). Tooltips colour the key
+- **Seeing a tile's forges:** hover it (desktop) or press and hold it (phone). In the Bag, a tap
+  works too. Tooltips colour the key
   words: red multiply, blue points, orange light, purple replay, gold money, green wild and copy.
 - **Strongest** in the shop's letter grid sorts your letters by a rough strength score (points through
   every forge), so you can see what to build next. **Most** puts the letters you have the most copies
@@ -104,7 +106,7 @@ you run out of words. Menu → Sound has Music and Effects sliders, saved on the
 - **31 Rarity-Tiered Upgrades:** `Common`, `Uncommon`, `Rare`, and `Legendary` (`Word ^1.25`), plus Workbench thinning (`🔥 Burn Tile`, `📑 Clone +1`, `🔗 Fuse 2 Tiles`).
 - **Wilds & Clones:** Max `2` Wild `?` tiles per run. Wilds keep their forges (a Wild `?` can't take new ones, and neighbours can't retrigger it). A letter can carry one wild forge (`◀?` or `?▶`), on top of any other forges; a tile made wild during play keeps its forges but can't make its own neighbour wild, so wilds don't chain. Every clone, paid ($11) or from a ⧉ forge, copies the tile with all its forges; the anti-spam Audits keep that in check.
 - **7 Terraces × 15 Audits + Anti-Spam Audits:** Each Terrace plays Vigil I → Vigil II → Audit, unlocking Endless mode after Terrace 7 (hitting `∞ Beatitude` ends the run). In Endless the goal's number of digits grows 30% each stage (`ENDLESS_*` in `src/core.js`): about 1e10 by Endless 9, 1e50 by Endless 12, and 1e300 (right next to infinity) at Endless 14. Steady upgrades can't keep up; only a real power engine (Word ^1.25 with replays) reaches the top, and surviving there means you break the scale. Playing the same word `>= 3` times (`Index Expurgatorius`) or relying on the same tile `>= 7` times (`Censored Glyph`) schedules a targeted Audit against that spam. A vowel-heavy build (70% of forges on vowels, or 60% of letters played are vowels) schedules `The Vowel Fast`: vowels score 0 and their forges don't fire for that Audit.
-- **Live Goal Scale (`10%`–`200%`) & 6 Stakes:** Open `⚙ Menu` to adjust the live goal multiplier anytime or challenge cumulative Stakes (`White`, `Red`, `Green`, `Blue`, `Purple`, `Gold`).
+- **Live Goal Scale (`10%`–`200%`) & 6 Religious Orders:** Open `⚙ Menu` to adjust the live goal multiplier anytime or join a stricter Order. Each adds to the last, gentlest first: **Benedictine** (the moderate Rule: base rules), **Franciscan** (poverty: -1 Swap), **Dominican** (study: goals ×1.35), **Cistercian** (simplicity: no Fusing), **Trappist** (silence: -1 Word), **Carthusian** (the strictest: shop prices +$2, goals ×1.75). In the code they keep their old ids (`white` … `gold`) so saved wins carry over.
 - **Word Definition Preview:** Displays a 1-line truncated dictionary definition beside the angel judgement badge when a valid word is formed.
 
 ## Files
@@ -120,7 +122,7 @@ you run out of words. Menu → Sound has Music and Effects sliders, saved on the
 | `src/audio/` | Music loops, embedded at build time |
 | `src/scenes.js` | Home, win, lose and endless-end screens, the censer, and first-time tips |
 | `src/core.js` | ENABLE lexicon unpacker, goal scaling, 15 Audits + anti-spam Audits, Candlelight, `DICT_DEFS` |
-| `src/tile_forge.js` | Tile Forge gameplay engine, 31 upgrades, 6 Stakes, drag-and-drop, and Shop UI |
+| `src/tile_forge.js` | Tile Forge gameplay engine, 31 upgrades, 6 Religious Orders (difficulty), drag-and-drop, and Shop UI |
 | `src/lexicon.packed.txt` | Prefix-packed ~168k ENABLE Scrabble lexicon |
 | `build.py` | Bundles source files into standalone `index.html` and `tile-forge.html` |
 | `web/wrangler.jsonc` | Cloudflare Workers static-asset config for `shalonely.com/tileforge*` |
